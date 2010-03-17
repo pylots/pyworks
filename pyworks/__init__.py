@@ -1,3 +1,4 @@
+from threading import Lock
 class Future :
     def __init__( self ):
         self.state = 0
@@ -6,22 +7,33 @@ class Future :
     def set_value( self, value ):
         self.value = value
         self.state = 1
-        
-    def get_value( self, timeout=0 ):
-        # Should implement timeout one day :-)
-        if self.state == 0 :
+
+
+    def get_value( self, wait=True ):
+        # Should implement timeout/wait one day :-)
+        if wait and self.state == 0 :
             return None
         return self.value
     
 
-class NoFuture :
-    def set_value( self, value ): pass
-    def get_value( self ): return None
+class State :
+    def __init__( self, task ):
+        self.task = task
 
+    def new_state( self, state ):
+        self.task.state = state( self.task )
+        
+    def log( self, msg ):
+        self.task.log( msg )
+
+    def close( self ):
+        pass
+        
 
 class Task :
     def __init__( self, name, manager ):
         self.name, self.manager = name, manager
+        self.state = self
         self._dispatch = None
 
     def dispatch( self ):
@@ -39,6 +51,9 @@ class Task :
     def get_service( self, name ):
         return self.manager.get_service( name )
     
+    def new_state( self, state ):
+        self.state = state( self )
+        
     def log( self, msg ):
         self.manager.log( self, msg )
         

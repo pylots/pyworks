@@ -1,6 +1,5 @@
 from Queue import Queue, Empty
 from threading import Thread
-from pyworks import NoFuture
 import sys, threading, time, os
 
 class Module :
@@ -56,6 +55,10 @@ class Proxy(object):
         else:
             return ProxyMethodWrapper( self._runner.queue, name )
 
+class NoFuture :
+    def set_value( self, value ): pass
+    def get_value( self ): return None
+    
 class Runner( Thread ) :
     def __init__( self, manager, name, task ):
         Thread.__init__(self, name=name)
@@ -71,7 +74,7 @@ class Runner( Thread ) :
             try:
                 m = self.queue.get( timeout=2 )
                 try:
-                    func = getattr( self.task, m.name )
+                    func = getattr( self.task.state, m.name )
                     if 'future' in m.kwds :
                         f = m.kwds[ 'future' ]
                         del( m.kwds[ 'future' ])
@@ -82,7 +85,7 @@ class Runner( Thread ) :
                     print "funccall %s failed: %s" % ( m.name, sys.exc_value )
                     self.manager.log( self.task, "funccall %s failed: %s" % ( m.name, sys.exc_value ))
             except Empty :
-                self.task.timeout( )
+                self.task.state.timeout( )
 
 
 class Manager :
