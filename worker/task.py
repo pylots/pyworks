@@ -1,3 +1,5 @@
+import time
+
 from pyworks import Task
 
 class WorkerTask( Task ) :
@@ -10,6 +12,10 @@ class WorkerTask( Task ) :
             self.log( "%02d: worker hello: %s, size=%s" % ( n, msg, size ))
         return n
         
+    def longwork( self ):
+        time.sleep( 5 )
+        return 42
+    
     def timeout( self ):
         self.ntimeout += 1
         self.log( "timeout in worker: %d" % self.ntimeout )

@@ -1,25 +1,42 @@
 from threading import Lock
+from Queue import Queue, Empty
+
+class FutureShock( Exception ):
+    pass
+
+
 class Future :
     def __init__( self ):
-        self.state = 0
-        self.value = None
+        self.queue = Queue( )
         
     def set_value( self, value ):
-        self.value = value
-        self.state = 1
+        self.queue.put( value )
 
-
-    def get_value( self, wait=True ):
-        # Should implement timeout/wait one day :-)
-        if wait and self.state == 0 :
-            return None
-        return self.value
+    def get_value( self, timeout=Ellipsis ):
+        if self.queue.qsize( ) == 0 :
+            # The result is not ready yet
+            if timeout == 0 :
+                raise FutureShock( 'no value' )
+            if timeout == Ellipsis :
+                # wait forever for a result
+                return self.queue.get( )
+            else:
+                # Will raise Empty on timeout
+                try :
+                    return self.queue.get( timeout=timeout )
+                except Empty:
+                    raise FutureShock( 'timeout' )
+                
+        return self.queue.get( )
     
 
 class State :
     def __init__( self, task ):
         self.task = task
 
+    def __str__( self ):
+        return self
+    
     def new_state( self, state ):
         self.task.state = state( self.task )
         

@@ -1,4 +1,4 @@
-from pyworks import Task, Future
+from pyworks import Task, Future, FutureShock
 
 from time import time
 
@@ -25,6 +25,14 @@ class ClientTask( Task ) :
                 self.answers.append( f )
             t = time() - start
             self.log( "%.0f msg/sec" % ( float( n ) / t ))
+
+        if self.ntimeout == 3 :
+            x = Future( )
+            self.worker.longwork( future=x )
+            try:
+                self.log ( "long answer = %d" % x.get_value( 2 ))
+            except FutureShock :
+                self.log( "Ahh, I gave up waiting for longwork" )
 
         if self.ntimeout == 5 :
             sum = 0

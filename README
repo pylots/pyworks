@@ -14,6 +14,10 @@ Every Task has a State (default is it self), which handle all incoming Methods. 
 
 No thought or time whatsoever has been put into performance, this is a study only.
 
-Kind regards
+run test test program by simply doing:
+$ python pywork.py
+
+Works on python, jython and IronPython (around version 2.5/2.6)
+
 /Rene Nejsum
 raindog@post.com
