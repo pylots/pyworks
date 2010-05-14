@@ -24,6 +24,7 @@ class WorkerTask( Task ) :
 
         if self.ntimeout == 5 :
             self.log( "Well thats it, bye" )
-            self.manager.shutdown( )
         
+    def close( self ):
+        self.closed( )
         

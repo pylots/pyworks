@@ -5,6 +5,7 @@ import sys, threading, time, os
 class Module :
     def __init__( self, name, conf, factory, task=None, proxy=None, runner=None ):
         self.name, self.conf, self.factory, self.task, self.proxy, self.runner = name, conf, factory, task, proxy, runner
+        self.prio = 5
         self.listeners = {}
 
     def get_listeners( self ):
@@ -60,9 +61,9 @@ class NoFuture :
     def get_value( self ): return None
     
 class Runner( Thread ) :
-    def __init__( self, manager, name, task ):
-        Thread.__init__(self, name=name)
-        self.manager, self.name, self.task = manager, name, task
+    def __init__( self, manager, module ):
+        Thread.__init__(self, name=module.name)
+        self.manager, self.module, self.name, self.task = manager, module, module.name, module.task
         self.queue = Queue( )
         self.running = True
         
@@ -72,7 +73,7 @@ class Runner( Thread ) :
     def run( self ):
         while self.queue.qsize( ) or self.running :
             try:
-                m = self.queue.get( timeout=2 )
+                m = self.queue.get( timeout=self.task._timeout )
                 try:
                     func = getattr( self.task.state, m.name )
                     if 'future' in m.kwds :
@@ -82,7 +83,6 @@ class Runner( Thread ) :
                         f = NoFuture( )
                     f.set_value( func( *m.args, **m.kwds ))
                 except:
-                    print "funccall %s failed: %s" % ( m.name, sys.exc_value )
                     self.manager.log( self.task, "funccall %s failed: %s" % ( m.name, sys.exc_value ))
             except Empty :
                 self.task.state.timeout( )
@@ -91,43 +91,60 @@ class Runner( Thread ) :
 class Manager :
     def __init__( self ):
         self.modules = {}
+        self.prio = 0
+        self.name = "Manager"
         
     def log( self, task, msg ):
-        self.modules[ "logger" ].proxy.log( task, 2, msg )
+        module = self.modules[ "logger" ]
+        msg = "q:%d, %s" % ( module.runner.queue.qsize( ), msg )
+        module.proxy.log( task, 2, msg )
         
     def error( self, task, msg ):
         self.modules[ "logger" ].proxy.log( task, 1, msg )
     
     def loadModules( self, task_list ):
         for name, module in task_list.items( ) :
-            module.task = module.factory( name, self )
+            module.name = name
+            module.task = module.factory( module, self )
             module.task._dispatch = Dispatcher( module.task )
-            module.runner = Runner( self, module.name, module.task )
+            module.runner = Runner( self, module )
             module.proxy = Proxy( module.runner, module.name )
+            module.prio = self.prio
             self.modules[ name ] = module
-
+        # Every time loadModules is called it is Task's with lower prio
+        self.prio += 1
+        
     def initModules( self ):
         for name, module in self.modules.items( ) :
             module.task.init( )
-
+            
     def confModules( self ):
         for name, module in self.modules.items( ) :
             if module.conf and os.access( module.conf, os.R_OK ):
                 execfile( module.conf, { 'task' : module.task } )
             module.task.conf( )
-
+            
     def runModules( self ):
         for name, module in self.modules.items( ) :
             self.log( module.task, "Starting runner: %s" % name )
             module.runner.start( )
             
     def shutdown( self ):                 
-        for name, module in self.modules.items( ): # Send close to all tasks
-            module.proxy.close( )
-        time.sleep( 3 )                             # A little time to settle down
-        for name, module in self.modules.items( ): # Stop the threads
-            module.runner.stop( )
-
+        for prio in [ 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 ] :
+            stopped = False
+            self.log( self, "closing level %d" % prio )
+            for name, module in self.modules.items( ): # Send close to all tasks
+                if module.prio == prio :
+                    self.log( module.task, "closing %s level %d" % ( module.task.name, prio ))
+                    module.proxy.close( )
+                    stopped = True
+            if stopped :
+                time.sleep( 3 )                             # A little time to settle down
+            for name, module in self.modules.items( ): # Stop the threads
+                if module.prio == prio :
+                    module.runner.stop( )
+                    module.runner.join( )
+                    
     def closeModules( self ):
         for name, module in self.modules.items( ) :
             module.task.close( )

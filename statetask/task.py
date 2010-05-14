@@ -7,6 +7,9 @@ class BaseState( State ):
     def worker_done( self, msg ):
         self.log( "Received worker_done in Wrong state: %s" % self )
     
+    def close( self ):
+        self.task.closed( )
+        
 class InitialState( BaseState ):
     def timeout( self ):
         self.log( "timeout in InitialState" )

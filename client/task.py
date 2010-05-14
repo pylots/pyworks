@@ -16,9 +16,10 @@ class ClientTask( Task ) :
 
     def timeout( self ):
         self.log( "timeout: %d" % self.ntimeout )
+        return
         if self.ntimeout == 2 :
             start = time()
-            n = 10000
+            n = 100
             for i in range( n ):
                 f = Future( )
                 self.worker.hello( i, "hello, from %s: %d" % ( self.name, self.ntimeout ), future=f )
@@ -41,6 +42,10 @@ class ClientTask( Task ) :
             self.log( "result = %s" % sum )
         self.ntimeout += 1
 
+    def close( self ):
+        self.log( "closing" )
+        self.closed( )
+        
     def worker_done( self, msg ):
         self.log( "The worker task is done: %s" % msg )
         

@@ -48,22 +48,27 @@ class State :
         
 
 class Task :
-    def __init__( self, name, manager ):
-        self.name, self.manager = name, manager
+    def __init__( self, module, manager ):
+        self.module, self.manager = module, manager
+        self.name = module.name
         self.state = self
         self._dispatch = None
-
+        self._timeout = 2
+        
     def dispatch( self ):
         return self._dispatch
     
+    def set_timeout( self, t ):
+        self._timeout = t
+        
     def get_module( self ):
-        return self.manager.modules[ self.name ]
+        return self.manager.modules[ self.module.name ]
     
     def get_listeners( self ):
         return self.get_module( ).listeners.values( )
     
     def get_queue( self ):
-        return self.manager.modules[ self.name ].runner.queue
+        return self.module.runner.queue
 
     def get_service( self, name ):
         return self.manager.get_service( name )
@@ -79,6 +84,9 @@ class Task :
 
     def add_listener( self, name ):
         self.manager.modules[ name ].listeners[ self.name ] = self
+        
+    def closed( self ):
+        self.module.runner.running = False
         
     def init( self ):
         pass
