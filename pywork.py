@@ -1,5 +1,4 @@
 from pyworks.taskmanager import Module, Manager
-from gui.task import WorkApp
 
 from logger.task import LoggerTask
 
@@ -25,11 +24,6 @@ if __name__ == "__main__" :
     m.confModules( )
     m.runModules( )
 
-    app = WorkApp( m )
-    app.MainLoop()
-    
-    print "DONE GUI"
-    
     m.shutdown( )
     
     # wait for all to close
