@@ -5,7 +5,11 @@ class LoggerTask( Task ):
         self._log = open( "log/syslog", "a" )
         self._log.write( "***init***\n" )
         self._log.flush( )
-        
+        self._echo = False
+
+    def echoOn( self ):
+        self._echo = True
+
     def log( self, task, level, msg ):
         msg = "[%s] %s\n" % ( task.name, msg )
         if self._log == None :
@@ -13,6 +17,8 @@ class LoggerTask( Task ):
         else:
             self._log.write( msg )
             self._log.flush( )
+        if self._echo :
+            print msg,
         
     def close( self ):
         self._log.write( "*** stopped ***\n" )
