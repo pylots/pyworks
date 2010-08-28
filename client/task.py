@@ -10,7 +10,6 @@ class ClientTask( Task ) :
         self.ntimeout = 0
         self.answers = []
         self.worker = self.get_service( "worker" )
-        self.dmodel = self.get_service( "dmodel" )
 
     def conf( self ):
         self.add_listener( "worker" )
