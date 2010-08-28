@@ -1,4 +1,4 @@
-from pyworks import Task, Future, FutureShock
+from pyworks import Task, FutureShock
 
 from time import time
 
@@ -10,6 +10,7 @@ class ClientTask( Task ) :
         self.ntimeout = 0
         self.answers = []
         self.worker = self.get_service( "worker" )
+        self.dmodel = self.get_service( "dmodel" )
 
     def conf( self ):
         self.add_listener( "worker" )
@@ -21,15 +22,13 @@ class ClientTask( Task ) :
             start = time()
             n = 100
             for i in range( n ):
-                f = Future( )
-                self.worker.hello( i, "hello, from %s: %d" % ( self.name, self.ntimeout ), future=f )
-                self.answers.append( f )
+                a = self.worker.hello( i, "hello, from %s: %d" % ( self.name, self.ntimeout ))
+                self.answers.append( a )
             t = time() - start
             self.log( "%.0f msg/sec" % ( float( n ) / t ))
 
         if self.ntimeout == 3 :
-            x = Future( )
-            self.worker.longwork( future=x )
+            x = self.worker.longwork( )
             try:
                 self.log ( "long answer = %d" % x.get_value( 2 ))
             except FutureShock :

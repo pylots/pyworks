@@ -5,31 +5,6 @@ class FutureShock( Exception ):
     pass
 
 
-class Future :
-    def __init__( self ):
-        self.queue = Queue( )
-        
-    def set_value( self, value ):
-        self.queue.put( value )
-
-    def get_value( self, timeout=Ellipsis ):
-        if self.queue.qsize( ) == 0 :
-            # The result is not ready yet
-            if timeout == 0 :
-                raise FutureShock( 'no value' )
-            if timeout == Ellipsis :
-                # wait forever for a result
-                return self.queue.get( )
-            else:
-                # Will raise Empty on timeout
-                try :
-                    return self.queue.get( timeout=timeout )
-                except Empty:
-                    raise FutureShock( 'timeout' )
-                
-        return self.queue.get( )
-    
-
 class State :
     def __init__( self, task ):
         self.task = task
@@ -46,6 +21,12 @@ class State :
     def close( self ):
         pass
         
+class Filter :
+    def __init__( self, task=None ):
+        self.task = task
+
+    def filter( self, method, *args, **kwds ):
+        return True
 
 class Task :
     def __init__( self, module, manager ):
@@ -82,8 +63,8 @@ class Task :
     def error( self, msg ):
         self.manager.error( self, msg )
 
-    def add_listener( self, name ):
-        self.manager.modules[ name ].listeners[ self.name ] = self
+    def add_listener( self, name, filter=Filter( ) ):
+        self.manager.modules[ name ].listeners[ self.name ] = { 'task' : self, 'filter' : filter }
         
     def closed( self ):
         self.module.runner.running = False

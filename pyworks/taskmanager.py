@@ -12,9 +12,41 @@ class Module :
         return self.listeners.values( )
     
 
+class NoFuture :
+    def set_value( self, value ): pass
+    def get_value( self ): return None
+
+class Future :
+    def __init__( self ):
+        self.queue = Queue( )
+        
+    def is_ready( self ):
+        return self.queue.qsize( ) > 0
+
+    def set_value( self, value ):
+        self.queue.put( value )
+
+    def get_value( self, timeout=Ellipsis ):
+        if self.queue.qsize( ) == 0 :
+            # The result is not ready yet
+            if timeout == 0 :
+                raise FutureShock( 'no value' )
+            if timeout == Ellipsis :
+                # wait forever for a result
+                return self.queue.get( )
+            else:
+                # Will raise Empty on timeout
+                try :
+                    return self.queue.get( timeout=timeout )
+                except Empty:
+                    raise FutureShock( 'timeout' )
+                
+        return self.queue.get( )
+    
+
 class DistributedMethod :
-    def __init__( self, name, *args, **kwds ):
-        self.name, self.args, self.kwds = name, args, kwds
+    def __init__( self, name, future, *args, **kwds ):
+        self.name, self.future, self.args, self.kwds = name, future, args, kwds
 
 
 class DispatchMethodWrapper:
@@ -24,7 +56,8 @@ class DispatchMethodWrapper:
     def __call__( self, *args, **kwds ):
         # dispatch to all the listeners
         for listener in self.task.get_listeners( ):
-            listener.get_queue( ).put( DistributedMethod( self.method, *args, **kwds))
+            if listener[ 'filter' ].filter( self.method, *args, **kwds ):
+                listener[ 'task' ].get_queue( ).put( DistributedMethod( self.method, NoFuture(), *args, **kwds))
 
 
 class ProxyMethodWrapper:
@@ -32,7 +65,9 @@ class ProxyMethodWrapper:
         self.queue, self.name = queue, name
 
     def __call__( self, *args, **kwds ):
-        self.queue.put( DistributedMethod( self.name, *args, **kwds))
+        f = Future( )
+        self.queue.put( DistributedMethod( self.name, f, *args, **kwds))
+        return f
 
 
 class Dispatcher(object):
@@ -56,9 +91,6 @@ class Proxy(object):
         else:
             return ProxyMethodWrapper( self._runner.queue, name )
 
-class NoFuture :
-    def set_value( self, value ): pass
-    def get_value( self ): return None
     
 class Runner( Thread ) :
     def __init__( self, manager, module ):
@@ -74,14 +106,9 @@ class Runner( Thread ) :
         while self.queue.qsize( ) or self.running :
             try:
                 m = self.queue.get( timeout=self.task._timeout )
+                func = getattr( self.task.state, m.name )
                 try:
-                    func = getattr( self.task.state, m.name )
-                    if 'future' in m.kwds :
-                        f = m.kwds[ 'future' ]
-                        del( m.kwds[ 'future' ])
-                    else:
-                        f = NoFuture( )
-                    f.set_value( func( *m.args, **m.kwds ))
+                    m.future.set_value( func( *m.args, **m.kwds ))
                 except:
                     self.manager.log( self.task, "funccall %s failed: %s" % ( m.name, sys.exc_value ))
             except Empty :
@@ -154,4 +181,6 @@ class Manager :
     def get_service( self, service ):
         return self.modules[ service ].proxy
 
+    def get_modules( self ):
+        return self.modules.values()
 
