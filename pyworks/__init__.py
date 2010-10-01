@@ -18,6 +18,9 @@ class State :
     def log( self, msg ):
         self.task.log( msg )
 
+    def start( self ):
+        pass
+
     def close( self ):
         pass
         
@@ -28,6 +31,11 @@ class Filter :
     def filter( self, method, *args, **kwds ):
         return True
 
+class Adapter :
+    def __init__( self ):
+        pass
+
+    
 class Task :
     def __init__( self, module, manager ):
         self.module, self.manager = module, manager

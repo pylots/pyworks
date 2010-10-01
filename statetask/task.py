@@ -23,6 +23,9 @@ class TimeoutState( BaseState ):
         self.log( "The worker is done, going back to TimeoutState" )
         self.new_state( InitialState )
         
+    def close( self ):
+        self.task.close( )
+        
 class StateTask( Task ):
     def init( self ):
         self.log( "StateTask init" )

@@ -97,22 +97,26 @@ class Runner( Thread ) :
         Thread.__init__(self, name=module.name)
         self.manager, self.module, self.name, self.task = manager, module, module.name, module.task
         self.queue = Queue( )
-        self.running = True
+        self.state = "Init"
         
     def stop( self ):
-        self.running = False
+        self.state = "Stopping"
         
     def run( self ):
-        while self.queue.qsize( ) or self.running :
+        while self.state != "Stopping" :
             try:
+                self.state = "Ready"
                 m = self.queue.get( timeout=self.task._timeout )
                 func = getattr( self.task.state, m.name )
+                self.state = "Working"
                 try:
                     m.future.set_value( func( *m.args, **m.kwds ))
                 except:
                     self.manager.log( self.task, "funccall %s failed: %s" % ( m.name, sys.exc_value ))
             except Empty :
-                self.task.state.timeout( )
+                if self.state == "Ready" :
+                    self.task.state.timeout( )
+        self.state = "Stopped"
 
 
 class Manager :
@@ -120,8 +124,11 @@ class Manager :
         self.modules = {}
         self.prio = 0
         self.name = "Manager"
+        self.state = "Initial"
         
     def log( self, task, msg ):
+        if self.state != "Running" :
+            return
         module = self.modules[ "logger" ]
         msg = "q:%d, %s" % ( module.runner.queue.qsize( ), msg )
         module.proxy.log( task, 2, msg )
@@ -130,6 +137,7 @@ class Manager :
         self.modules[ "logger" ].proxy.log( task, 1, msg )
     
     def loadModules( self, task_list ):
+        self.state = "Loading"
         for name, module in task_list.items( ) :
             module.name = name
             module.task = module.factory( module, self )
@@ -140,44 +148,74 @@ class Manager :
             self.modules[ name ] = module
         # Every time loadModules is called it is Task's with lower prio
         self.prio += 1
+        self.state = "Loaded: %d" % self.prio
         
     def initModules( self ):
+        self.state = "Initializing"
         for name, module in self.modules.items( ) :
             module.task.init( )
+        self.log( self, "All Tasks initialized" )
+        self.state = "Initialized"
             
     def confModules( self ):
-        for name, module in self.modules.items( ) :
-            if module.conf and os.access( module.conf, os.R_OK ):
-                execfile( module.conf, { 'task' : module.task } )
-            module.task.conf( )
+        self.state = "Configuration"
+        prio = 0
+        while prio < self.prio :
+            for name, module in self.modules.items( ) :
+                if module.prio == prio :
+                    if os.access( 'conf/global.conf', os.R_OK ):
+                        execfile( 'conf/global.conf', { 'task' : module.task })
+                    if module.conf :
+                        if os.access( module.conf, os.R_OK ):
+                            execfile( module.conf, { 'task' : module.task } )
+                        else:
+                            print 'Warning: %s could not be read' % module.conf
+                    module.task.conf( )
+            prio += 1
+        self.state = "Configured"
             
     def runModules( self ):
-        for name, module in self.modules.items( ) :
-            self.log( module.task, "Starting runner: %s" % name )
-            module.runner.start( )
-            
-    def shutdown( self ):                 
-        for prio in [ 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 ] :
+        self.state = "Starting"
+        prio = 0
+        while prio < self.prio :
+            for name, module in self.modules.items( ) :
+                if module.prio == prio:
+                    module.runner.start( )
+                    module.proxy.start( )
+                    self.log( module.task, "Starting runner: %s" % name )
+            prio += 1
+        self.state = "Running"
+
+    def closeModules( self ):
+        self.state = "Closing"
+        prio = self.prio
+        while prio >= 1 :
+            prio -= 1
             stopped = False
-            self.log( self, "closing level %d" % prio )
-            for name, module in self.modules.items( ): # Send close to all tasks
+            for name, module in self.modules.items( ) :
                 if module.prio == prio :
-                    self.log( module.task, "closing %s level %d" % ( module.task.name, prio ))
                     module.proxy.close( )
                     stopped = True
             if stopped :
-                time.sleep( 3 )                             # A little time to settle down
-            for name, module in self.modules.items( ): # Stop the threads
-                if module.prio == prio :
-                    module.runner.stop( )
-                    module.runner.join( )
-                    
-    def closeModules( self ):
-        for name, module in self.modules.items( ) :
-            module.task.close( )
-            module.runner.stop( )  
-            module.runner.join( )
+                time.sleep( 1 )                             # A little time to settle down
+        self.state = "Closed"
             
+    def shutdown( self ):                 
+        self.state = "Shutting"
+        while self.prio > 0 :
+            self.prio -= 1
+            self.log( self, "Shutdown level %d" % self.prio )
+            for name, module in self.modules.items( ): # Stop the threads
+                if module.prio == self.prio :
+                    module.runner.stop( )
+        self.state = "Shutdown"
+                    
+    def dumpModules( self ):
+        template = "{0}\t{1}\t{2}"
+        print( template.format( "Task", "State", "Queue" ))
+        for name, module in list( self.modules.items( )):
+            print( template.format( name, module.runner.state, module.runner.queue.qsize( )))
+                   
     def get_service( self, service ):
         return self.modules[ service ].proxy
 

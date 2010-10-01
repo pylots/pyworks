@@ -38,6 +38,9 @@ if __name__ == "__main__" :
         if line == "exit" :
             running = False
             continue
+        if line == "dump" :
+            m.dumpModules( )
+            continue
         try:
             exec( line )
             prompt = ">>"
@@ -45,6 +48,7 @@ if __name__ == "__main__" :
             print "%s" % sys.exc_info( )[1]
             prompt = "?>>"
 
+    m.closeModules( )
     m.shutdown( )
     
     # wait for all to close
