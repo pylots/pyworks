@@ -31,6 +31,53 @@ class Filter :
     def filter( self, method, *args, **kwds ):
         return True
 
+class Node :
+    def __init__( self, nid, val ):
+        self.nid = nid
+        self.val = val
+        self.nodes = {}
+        self.parent = None
+
+    def notify( self, node ):
+        self.parent.notify( node )
+
+    def addNode( self, node ):
+        node.parent = self
+        self.nodes[ node.nid ] = node
+        return node
+
+    def getNid( self ):
+        if self.parent == None :
+            return self.nid
+        return self.parent.getNid( ) + '.' + self.name
+
+    def getVal( self ):
+        return self.val
+    
+    def setVal( self, val ):
+        if self.val != val :
+            self.val = val
+            self.notify( self )
+        
+    def getNode( self, nid ):
+        return self.nodes[ nid ]
+
+    def lookUp( self, nid ):
+        node = self
+        for k in nid.split( '.' ):
+            if node.hasKey( k ):
+                node = node.getNode( k )
+        return node
+
+    def hasNid( self, nid ):
+        return nid in self.nodes
+
+    def level( self ):
+        if self.parent == None :
+            return 0
+        return self.parent.level( ) + 1
+
+
 class Adapter :
     def __init__( self ):
         pass

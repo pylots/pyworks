@@ -20,6 +20,16 @@ class Future :
     def __init__( self ):
         self.queue = Queue( )
         
+    def __int__( self ):
+        print "Getting int()"
+        return self.get_value( )
+
+    def __add__( self, other ):
+        return self.get_value( ).__add__( other )
+    
+    def __radd__(self, other):
+        return self.__add__(other)    
+
     def is_ready( self ):
         return self.queue.qsize( ) > 0
 

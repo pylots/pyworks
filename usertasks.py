@@ -1,6 +1,6 @@
-from client.task import ClientTask
-from worker.task import WorkerTask
-from statetask.task import StateTask
+from client.client import ClientTask
+from worker.worker import WorkerTask
+from statetask.statetask import StateTask
 
 conf.addTask( "worker", WorkerTask )
 conf.addTask( "client1", ClientTask, conf="client/client.conf" )

@@ -17,8 +17,9 @@ class InitialState( BaseState ):
 
 class TimeoutState( BaseState ):
     def timeout( self ):
-        self.log( "timeout in TimeoutState" )
-        
+        # self.log( "timeout in TimeoutState" )
+        pass
+    
     def worker_done( self, msg ):
         self.log( "The worker is done, going back to TimeoutState" )
         self.new_state( InitialState )
