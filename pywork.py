@@ -2,7 +2,7 @@ import sys
 
 from pyworks.taskmanager import Module, Manager
 
-from logger.task import LoggerTask
+from logger.logger import LoggerTask
 
 sys_tasks = { "logger" : Module( "logger", "./logger/logger.conf", LoggerTask ) }
 
