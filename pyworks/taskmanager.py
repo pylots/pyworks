@@ -20,15 +20,18 @@ class Future :
     def __init__( self ):
         self.queue = Queue( )
         
-    def __int__( self ):
-        print "Getting int()"
-        return self.get_value( )
-
-    def __add__( self, other ):
-        return self.get_value( ).__add__( other )
+    # Methods for transparcy, so in stead of:
+    #   n += task.method( ).get_value( )
+    # you can do
+    #   n += task.method( )
+    def __int__( self ): return self.get_value( )
+    def __float__( self ): return self.get_value( )
+    def __add__( self, other ): return self.get_value( ).__add__( other )
+    def __sub__( self, other ): return self.get_value( ).__sub__( other )
+    def __mul__( self, other ): return self.get_value( ).__mul__( other )
+    def __div__( self, other ): return self.get_value( ).__div__( other )
     
-    def __radd__(self, other):
-        return self.__add__(other)    
+    def __radd__(self, other): return self.__add__(other)    
 
     def is_ready( self ):
         return self.queue.qsize( ) > 0
