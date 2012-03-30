@@ -10,9 +10,11 @@ class Tasks :
     def __init__( self ):
         self.list = {}
 
-    def addTask( self, name, factory, conf=None ):
+    def addTask( self, name, factory, conf=None, index=None ):
         self.list[ name ] = Module( name, conf, factory )
-        
+        if index :
+            self.list[ name ].index = index 
+
 def user_tasks( manager, conffile ):
     c = Tasks( )
     execfile( conffile, { 'conf' : c } )

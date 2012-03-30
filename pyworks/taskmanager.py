@@ -5,6 +5,7 @@ import sys, threading, time, os
 class Module :
     def __init__( self, name, conf, factory, task=None, proxy=None, runner=None ):
         self.name, self.conf, self.factory, self.task, self.proxy, self.runner = name, conf, factory, task, proxy, runner
+        self.index = 0
         self.prio = 5
         self.listeners = {}
 
@@ -21,7 +22,6 @@ class Future :
         self.queue = Queue( )
         
     def __int__( self ):
-        print "Getting int()"
         return self.get_value( )
 
     def __add__( self, other ):
@@ -148,6 +148,7 @@ class Manager :
     
     def loadModules( self, task_list ):
         self.state = "Loading"
+        index = 0
         for name, module in task_list.items( ) :
             module.name = name
             module.task = module.factory( module, self )
@@ -155,7 +156,9 @@ class Manager :
             module.runner = Runner( self, module )
             module.proxy = Proxy( module.runner, module.name )
             module.prio = self.prio
+            module.index = index
             self.modules[ name ] = module
+            index += 1
         # Every time loadModules is called it is Task's with lower prio
         self.prio += 1
         self.state = "Loaded: %d" % self.prio
