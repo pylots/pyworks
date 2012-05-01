@@ -1,0 +1,21 @@
+Version 1.0
+First release
+
+Version 1.1
+[ ] Implicit Future return from all methods
+Every return value implements __int__, __float__, __string__, which return the returned Future
+x = task.add( 2, 2 )
+# Do some stuff...
+print "result = %d" % x # Will wait here in get_value()
+
+[ ] Filter function on observer pattern
+A Task can add a Filter to oberver Task, making it possible to filter before messages are sent on an update()
+
+Version 1.2
+[ ] Index on Tasks.
+Every Task will get an Index number, meaning that many Tasks off the same Task Class will have an unique id/index
+Made for the Ring test
+
+Version 2.0
+[ ] Meta on object
+Every Task has a Meta object, which will receive all Messages first, should make it easier to do dynamically loggin, security and business logic

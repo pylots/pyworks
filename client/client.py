@@ -4,7 +4,7 @@ from time import time
 
 class ClientFilter( Filter ):
     def filter( self, method, *args, **kwargs ):
-        print "filter: %s" % method
+        # We just want everything
         return True
     
 class ClientTask( Task ) :
@@ -21,9 +21,9 @@ class ClientTask( Task ) :
 
     def timeout( self ):
         # self.log( "timeout: %d" % self.ntimeout )
-        if self.ntimeout == 2 :
+        if self.ntimeout == 2 or self.ntimeout == 4 :
             start = time()
-            n = 100
+            n = 10000 * self.ntimeout
             for i in range( n ):
                 a = self.worker.hello( i, "hello, from %s: %d" % ( self.name, self.ntimeout ))
                 self.answers.append( a )

@@ -87,6 +87,7 @@ class Task :
     def __init__( self, module, manager ):
         self.module, self.manager = module, manager
         self.name = module.name
+        self.index = module.index
         self.state = self
         self._dispatch = None
         self._timeout = 2
