@@ -21,7 +21,7 @@ class RingTask( Task ) :
     def setMessages( self, nmsg ):
         self.nmsg = nmsg
         
-    def ringop( self,  name, n ):
+    def ringop( self, name, n ):
         if n % 10001 == 0 :
             print "%s: from %s n=%d" % ( self.name, name, n )
         if n < 1000000 :

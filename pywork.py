@@ -12,7 +12,7 @@ class Tasks :
 
     def addTask( self, name, factory, conf=None, index=None ):
         self.list[ name ] = Module( name, conf, factory )
-        if index :
+        if index : # Overwriting default index/pid
             self.list[ name ].index = index 
 
 def user_tasks( manager, conffile ):
