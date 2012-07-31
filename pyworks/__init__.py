@@ -107,7 +107,9 @@ class Task :
     def get_queue( self ):
         return self.module.runner.queue
 
-    def get_service( self, name ):
+    def get_service( self, name=None ):
+        if not name :
+            return self.module.proxy
         return self.manager.get_service( name )
     
     def new_state( self, state ):
@@ -140,3 +142,4 @@ class Task :
     def timeout( self ):
         pass
     
+
