@@ -10,6 +10,7 @@ print "result = %d" % x # Will wait here in get_value()
 
 [ ] Filter function on observer pattern
 A Task can add a Filter to oberver Task, making it possible to filter before messages are sent on an update()
+Not really sure about this, seamed like a good idea, but probably not flexable enough
 
 Version 1.2
 [ ] Index on Tasks.

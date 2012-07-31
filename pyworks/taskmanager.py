@@ -164,7 +164,7 @@ class Manager :
             index += 1
         # Every time loadModules is called it is Task's with lower prio
         self.prio += 1
-        self.state = "Loaded: %d" % self.prio
+        self.state = "Loaded prio: %d" % self.prio
         
     def initModules( self ):
         self.state = "Initializing"
