@@ -1,4 +1,4 @@
-import sys
+import sys, os
 
 from pyworks.taskmanager import Module, Manager
 
@@ -34,7 +34,10 @@ if __name__ == "__main__" :
     prompt = ">>"
     running = True
     while running :
-        line = raw_input( prompt )
+        try:
+            line = raw_input( prompt )
+        except KeyboardInterrupt :
+            os._exit( 0 )            
         if len( line ) == 0 :
             prompt = ".."
         if line == "exit" :

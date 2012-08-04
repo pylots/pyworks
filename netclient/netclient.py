@@ -1,4 +1,5 @@
-from pyworks.net import NetTask, ClientConnection
+from pyworks.net import NetTask, ClientConnection, AsciiProtocol, STXETXProtocol
+
 
 class EchoClientTask( NetTask ):
     def init( self ):
@@ -8,33 +9,31 @@ class EchoClientTask( NetTask ):
         
     def conf( self ):
         self.add_listener( "netserver" )
-        print "EchoClient conf...."
         
     def server_ready( self, address ):
         print 'The server is ready, connect...', address
         if self.conn is not None :
-            print 'Up again ????'
+            self.log( "Connection already UP!" )
             return
-        self.conn = ClientConnection( self.get_service( ), address )
-        self.conn.start()
-        print 'client task started...'
+        self.conn = ClientConnection( self.get_service( ), address, protocol=AsciiProtocol )
+        self.conn.connect( )
         
-    def net_up( self, conn ):
-        print 'Client up: ', conn.address
+    def net_up( self, conn, level ):
+        self.log( 'Client up: %d, %s' % ( level, conn.address ))
 
     def net_down( self, conn ):
-        print 'Client down: ', conn.address
+        self.log( 'Client down: %d, %s' % ( level, conn.address ))
 
-    def net_received( self, conn, buf ):
-        print 'Client received: <%s>' % buf
+    def net_received( self, conn, tlg ):
+        self.log( "Client received: '%s'" % tlg )
         conn.send( "Right back at you" )
         
     def net_timeout( self, conn ):
-        print 'Client: net_timeout', conn.address
+        self.log( 'Client: net_timeout: %s:%s' % ( conn.address ))
         conn.send( "Wake up" )
         
     def timeout( self ):
-        print 'Client: timeout', self.conn
+        self.log( 'Client: timeout: %s' % ( self.conn.address ))
         if self.conn is not None :
             self.conn.send( 'Hello from Client: %d' % self.count )
             self.count += 1

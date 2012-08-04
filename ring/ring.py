@@ -3,13 +3,15 @@ from pyworks import Task, FutureShock, Filter
 from time import time
 
 class RingTask( Task ) :
-        
+    """
+    Send messages to next Task in Ring
+    """        
     def init( self ):
         self.count = 1
         self.n = self.index + 1
         if self.index == 99 :
             self.n = 0
-        print "%s: ring%d->ring%d" % ( self.name, self.index, self.n )
+        self.log( "%s: ring%d->ring%d" % ( self.name, self.index, self.n ))
         self.next = self.get_service( "ring%d" % self.n )
 
     def conf( self ):
@@ -23,16 +25,15 @@ class RingTask( Task ) :
         
     def ringop( self, name, n ):
         if n % 10001 == 0 :
-            print "%s: from %s n=%d" % ( self.name, name, n )
+            self.log( "%s: from %s n=%d" % ( self.name, name, n ))
         if n < 1000000 :
             self.next.ringop( self.name, n + 1 )
         if n == 1000000 :
-            print "Done: %d secs" % ( time() - self.start )
+            self.log( "Done: %d secs" % ( time() - self.start ))
         
     def timeout( self ):
         self.start = time()
         if self.count > 0 and self.index == 0 :
-            print "%s calling next with %d" % ( self.name, self.n )
+            self.log( "%s calling next with %d" % ( self.name, self.n ))
             self.next.ringop( self.name, self.n )
         self.count -= 1
-
