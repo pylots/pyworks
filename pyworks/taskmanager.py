@@ -17,15 +17,18 @@ class NoFuture :
     def set_value( self, value ): pass
     def get_value( self ): return None
 
+
 class Future :
     def __init__( self ):
         self.queue = Queue( )
+        self.cache = None
         
     # Methods for transparcy, so in stead of:
     #   n += task.method( ).get_value( )
     # you can do
     #   n += task.method( )
     def __int__( self ): return self.get_value( )
+    def __str__( self ): return self.get_value( )
     def __float__( self ): return self.get_value( )
     def __add__( self, other ): return self.get_value( ).__add__( other )
     def __sub__( self, other ): return self.get_value( ).__sub__( other )
@@ -34,26 +37,33 @@ class Future :
     def __radd__(self, other): return self.__add__(other)    
 
     def is_ready( self ):
+        if self.cache :
+            return True
         return self.queue.qsize( ) > 0
 
     def set_value( self, value ):
         self.queue.put( value )
 
     def get_value( self, timeout=Ellipsis ):
+        if self.cache :
+            return self.cache
         if self.queue.qsize( ) == 0 :
             # The result is not ready yet
             if timeout == 0 :
                 raise FutureShock( 'no value' )
             if timeout == Ellipsis :
                 # wait forever for a result
-                return self.queue.get( )
+                self.cache = self.queue.get( )
+                return self.cache
             else:
                 # Will raise Empty on timeout
                 try :
-                    return self.queue.get( timeout=timeout )
+                    self.cache = self.queue.get( timeout=timeout )
+                    return self.cache
                 except Empty:
                     raise FutureShock( 'timeout' )
-        return self.queue.get( )
+        self.cache = self.queue.get( )
+        return self.cache
     
 
 class DistributedMethod :
