@@ -17,6 +17,6 @@ No thought or time whatsoever has been put into performance, this is a study onl
 run test test program by simply doing:
 $ python pywork.py
 
-Works on python, jython and IronPython (around version 2.5/2.6)
+Works on python, jython and IronPython (around version >= 2.6)
 
 raindog@post.com

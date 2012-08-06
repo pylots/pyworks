@@ -11,7 +11,7 @@ class LoggerTask( Task ):
         self._echo = True
 
     def log( self, task, level, msg ):
-        msg = "[%s] %s\n" % ( task.name, msg )
+        msg = "[%s] %s\n" % ( task.get_name( ), msg )
         if self._log == None :
             print "LOG IS CLOSED: %s" % msg
         else:

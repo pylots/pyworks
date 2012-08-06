@@ -25,7 +25,7 @@ class ClientTask( Task ) :
             start = time()
             n = 10000 * self.ntimeout
             for i in range( n ):
-                a = self.worker.hello( i, "hello, from %s: %d" % ( self.name, self.ntimeout ))
+                a = self.worker.hello( i, "hello, from %s: %d" % ( self.get_name( ), self.ntimeout ))
                 self.answers.append( a )
             t = time() - start
             self.log( "%.0f msg/sec" % ( float( n ) / t ))

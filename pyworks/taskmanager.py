@@ -53,7 +53,6 @@ class Future :
                     return self.queue.get( timeout=timeout )
                 except Empty:
                     raise FutureShock( 'timeout' )
-                
         return self.queue.get( )
     
 
@@ -120,15 +119,16 @@ class Runner( Thread ) :
             try:
                 self.state = "Ready"
                 m = self.queue.get( timeout=self.task._timeout )
-                func = getattr( self.task.state, m.name )
+                func = getattr( self.task._state, m.name )
                 self.state = "Working"
                 try:
                     m.future.set_value( func( *m.args, **m.kwds ))
                 except:
-                    self.manager.log( self.task, "funccall %s failed: %s" % ( m.name, sys.exc_value ))
+                    print 'Exception: %s %s' % ( m.name, sys.exc_info( )[1])
+                    self.manager.log( self.task, "funccall %s failed: %s" % ( m.name, sys.exc_info( )[1] ))
             except Empty :
                 if self.state == "Ready" :
-                    self.task.state.timeout( )
+                    self.task._state.timeout( )
         self.state = "Stopped"
 
 

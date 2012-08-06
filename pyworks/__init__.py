@@ -12,8 +12,8 @@ class State :
     def __str__( self ):
         return self
     
-    def new_state( self, state ):
-        self.task.state = state( self.task )
+    def set_state( self, state ):
+        self.task._state = state( self.task )
         
     def log( self, msg ):
         self.task.log( msg )
@@ -24,12 +24,14 @@ class State :
     def close( self ):
         pass
         
+
 class Filter :
     def __init__( self, task=None ):
         self.task = task
 
     def filter( self, method, *args, **kwds ):
         return True
+
 
 class Node :
     def __init__( self, nid, val ):
@@ -85,10 +87,10 @@ class Adapter :
     
 class Task :
     def __init__( self, module, manager ):
-        self.module, self.manager = module, manager
-        self.name = module.name
-        self.index = module.index
-        self.state = self
+        self._module, self._manager = module, manager
+        self._name = module.name
+        self._index = module.index
+        self._state = self
         self._dispatch = None
         self._timeout = 2
         
@@ -99,33 +101,36 @@ class Task :
         self._timeout = t
         
     def get_module( self ):
-        return self.manager.modules[ self.module.name ]
+        return self._manager.modules[ self._module.name ]
     
     def get_listeners( self ):
         return self.get_module( ).listeners.values( )
     
     def get_queue( self ):
-        return self.module.runner.queue
+        return self._module.runner.queue
 
     def get_service( self, name=None ):
         if not name :
-            return self.module.proxy
-        return self.manager.get_service( name )
+            return self._module.proxy
+        return self._manager.get_service( name )
+
+    def get_name( self ):
+        return self._name
     
-    def new_state( self, state ):
-        self.state = state( self )
+    def set_state( self, state ):
+        self._state = state( self )
         
     def log( self, msg ):
-        self.manager.log( self, msg )
+        self._manager.log( self, msg )
         
     def error( self, msg ):
-        self.manager.error( self, msg )
+        self._manager.error( self, msg )
 
     def add_listener( self, name, filter=Filter( ) ):
-        self.manager.modules[ name ].listeners[ self.name ] = { 'task' : self, 'filter' : filter }
+        self._manager.modules[ name ].listeners[ self._name ] = { 'task' : self, 'filter' : filter }
         
     def closed( self ):
-        self.module.runner.running = False
+        self._module.runner.running = False
         
     def init( self ):
         pass
@@ -142,4 +147,3 @@ class Task :
     def timeout( self ):
         pass
     
-

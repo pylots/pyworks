@@ -8,7 +8,7 @@ class WorkerTask( Task ) :
         
     def hello( self, n, msg ):
         if n % 2345 == 0 :
-            size = self.manager.modules[ self.name ].runner.queue.qsize( )
+            size = self._manager.modules[ self._name ].runner.queue.qsize( )
             self.log( "%02d: worker hello: %s, size=%s" % ( n, msg, size ))
         return n
         
