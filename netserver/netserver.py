@@ -27,6 +27,9 @@ class EchoServerTask( NetTask ):
         
     def net_timeout( self, conn ):
         self.log( 'Server: net_timeout' )
+
+    def timeout( self ):
+        conn.send( 'timeout')
         
     def activated( self ):
         self.log( 'ACTIVATED...' )
