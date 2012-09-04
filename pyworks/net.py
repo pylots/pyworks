@@ -51,7 +51,6 @@ class Connection :
         self.task = task
         self.address = address
         self.connections = connections
-        self.q = Queue( )
         self.sock = None
         self.protocol = protocol( )
         
@@ -61,7 +60,8 @@ class Connection :
         t.start( )
     
     def send( self, msg ):
-        self.q.put( msg )
+        if self.protocol :
+            self.protocol.send( self.sock, msg )
         
     def level1( self ):
         return True
@@ -70,11 +70,6 @@ class Connection :
         return True
 
     def level3( self ):
-        try:
-            buf = self.q.get( False )
-            self.protocol.send( self.sock, buf )
-        except Empty :
-            pass
         try :
             inputs = [ self.sock ]
             outputs = []
