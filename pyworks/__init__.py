@@ -21,6 +21,12 @@ class State :
     def start( self ):
         pass
 
+    def exception( self, method_name ):
+        pass
+
+    def timeout( self ):
+        pass
+
     def close( self ):
         pass
         

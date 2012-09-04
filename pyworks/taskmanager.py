@@ -136,6 +136,7 @@ class Runner( Thread ) :
                 except:
                     print 'Exception: %s %s' % ( m.name, sys.exc_info( )[1])
                     self.manager.log( self.task, "funccall %s failed: %s" % ( m.name, sys.exc_info( )[1] ))
+                    self.task._state.exception( m.name )
             except Empty :
                 if self.state == "Ready" :
                     self.task._state.timeout( )
