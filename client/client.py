@@ -1,4 +1,4 @@
-from pyworks import Task, FutureShock, Filter
+from pyworks import Task, FutureShock, Filter, Future
 
 from time import time
 
@@ -20,8 +20,10 @@ class ClientTask( Task ) :
         self.add_listener( "worker", filter=ClientFilter( )  )
 
     def timeout( self ):
-        # self.log( "timeout: %d" % self.ntimeout )
+        self.log( "timeout: %d" % self.ntimeout )
+        self.ntimeout += 1
         if self.ntimeout == 2 or self.ntimeout == 4 :
+            return
             start = time()
             n = 10000 * self.ntimeout
             for i in range( n ):
@@ -32,18 +34,21 @@ class ClientTask( Task ) :
 
         if self.ntimeout == 3 :
             self.log( "Doing longwork" )
-            x = self.worker.longwork( )
+            future = Future( )
+            self.worker.start_long_work( future )
             try:
-                self.log ( "long answer = %d" % x )
+                self.log ( "long answer 1 = %d" % future.get_value( 2 ))
             except FutureShock :
-                self.log( "Ahh, I gave up waiting for longwork" )
+                self.log( "Ahh, I gave up waiting for longwork, try a little longer" )
+                self.log ( "long answer 2 = %d" % future.get_value( 10 ))
+                self.log ( "long answer 3 = %d" % future.get_value( ))
 
         if self.ntimeout == 5 :
+            return
             sum = 0
             for r in self.answers :
                 sum = sum + r
             self.log( "result = %s" % sum )
-        self.ntimeout += 1
 
     def close( self ):
         self.log( "closing" )

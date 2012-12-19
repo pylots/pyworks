@@ -23,7 +23,7 @@ def user_tasks( manager, conffile ):
 if __name__ == "__main__" :
     m = Manager( )
     m.loadModules( sys_tasks )
-    m.loadModules( user_tasks( m, 'usertasks.py' ) )
+    m.loadModules( user_tasks( m, 'conf/usertasks.py' ) )
     m.initModules( )
     m.confModules( )
     m.runModules( )

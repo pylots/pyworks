@@ -1,10 +1,11 @@
 import time
 
-from pyworks import Task
+from pyworks import Task, Future
 
 class WorkerTask( Task ) :
     def init( self ):
         self.ntimeout = 0
+        self.future = None
         
     def hello( self, n, msg ):
         if n % 2345 == 0 :
@@ -12,9 +13,9 @@ class WorkerTask( Task ) :
             self.log( "%02d: worker hello: %s, size=%s" % ( n, msg, size ))
         return n
         
-    def longwork( self ):
-        time.sleep( 5 )
-        return 42
+    def start_long_work( self, future ):
+        self.future = future
+        self.log( 'starting to long work, return on %s' % self.future )
     
     def timeout( self ):
         self.ntimeout += 1
@@ -23,8 +24,13 @@ class WorkerTask( Task ) :
             self.dispatch( ).worker_done( "good-bye" )
 
         if self.ntimeout == 5 :
+            self.log( 'setting value for long_work()....' )
+            self.future.set_value( 42 )
+            
+        if self.ntimeout == 8 :
             self.log( "Well thats it, bye" )
         
+            
     def close( self ):
         self.closed( )
         

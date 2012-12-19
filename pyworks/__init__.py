@@ -1,9 +1,73 @@
 from threading import Lock
+import threading
+from datetime import datetime
 from Queue import Queue, Empty
 
 class FutureShock( Exception ):
     pass
 
+class NoFuture( object ):
+    def set_value( self, value ): pass
+    def get_value( self ): return None
+
+lock = Lock( )
+_syslog_file = open( "log/syslog", "a" )
+def syslog( msg ):
+    lock.acquire( )
+    try:
+        _syslog_file.write( "%s: [%s] %s\n" % ( datetime.now( ).strftime( "%H%M%S" ), threading.current_thread( ), msg ))
+        _syslog_file.flush( )
+    finally:
+        lock.release( )
+syslog( "***Ready***" )
+
+debug_flag = False
+def debug( msg ):
+    if debug_flag :
+        syslog( msg )
+        
+class Future( object ):
+    def __init__( self ):
+        self.queue = Queue( )
+        self.has_value = False
+        self.value = None
+        self.ready = False
+        self.lock = Lock( )
+
+    def is_ready( self ):
+        if self.has_value :
+            return True
+        return self.queue.qsize( ) > 0
+
+    def set_value( self, value ):
+        if self.has_value :
+            syslog( "Trying to set_value more than once" )
+        self.queue.put( value )
+        
+    def get_value( self, timeout=Ellipsis ):
+        if self.has_value :
+            return self.value
+        if self.queue.qsize( ) == 0 :
+            # The result is not ready yet
+            if timeout == 0 :
+                raise FutureShock( 'no value' )
+            if timeout == Ellipsis :
+                # wait forever for a result
+                self.value = self.queue.get( )
+                self.has_value = True
+                return self.value
+            else:
+                # Will raise Empty on timeout
+                try :
+                    self.value = self.queue.get( timeout=timeout )
+                    self.has_value = True
+                    return self.value
+                except Empty:
+                    raise FutureShock( 'timeout' )
+        self.value = self.queue.get( )
+        self.has_value = True
+        return self.value
+    
 
 class State :
     def __init__( self, task ):
@@ -12,8 +76,16 @@ class State :
     def __str__( self ):
         return self
     
+    def enter( self ):
+        pass
+
+    def leave( self ):
+        pass
+
     def set_state( self, state ):
+        self.task._state.leave( )
         self.task._state = state( self.task )
+        self.task._state.enter( )
         
     def log( self, msg ):
         self.task.log( msg )
@@ -125,6 +197,7 @@ class Task :
     
     def set_state( self, state ):
         self._state = state( self )
+        self._state.enter( )
         
     def log( self, msg ):
         self._manager.log( self, msg )

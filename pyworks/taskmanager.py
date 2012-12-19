@@ -1,6 +1,8 @@
 from Queue import Queue, Empty
 from threading import Thread
-import sys, threading, time, os
+import sys, threading, time, os, traceback
+from pyworks import Future, NoFuture, syslog
+
 
 class Module :
     def __init__( self, name, conf, factory, task=None, proxy=None, runner=None ):
@@ -13,58 +15,65 @@ class Module :
         return self.listeners.values( )
     
 
-class NoFuture :
-    def set_value( self, value ): pass
-    def get_value( self ): return None
-
-
-class Future :
-    def __init__( self ):
-        self.queue = Queue( )
-        self.cache = None
-        
+class InternalFuture( Future ):
     # Methods for transparcy, so in stead of:
     #   n += task.method( ).get_value( )
     # you can do
     #   n += task.method( )
-    def __int__( self ): return self.get_value( )
-    def __str__( self ): return self.get_value( )
-    def __float__( self ): return self.get_value( )
-    def __add__( self, other ): return self.get_value( ).__add__( other )
-    def __sub__( self, other ): return self.get_value( ).__sub__( other )
-    def __mul__( self, other ): return self.get_value( ).__mul__( other )
-    def __div__( self, other ): return self.get_value( ).__div__( other )
-    def __radd__(self, other): return self.__add__(other)    
+    def __add__(self, other): return self.get_value( ).__add__( other )
+    def __sub__(self, other): return self.get_value( ).__sub__( other )
+    def __mul__(self, other): return self.get_value( ).__mul__( other )
+    def __floordiv__(self, other): return self.get_value( ).__floordiv__( other )
+    def __mod__(self, other): return self.get_value( ).__mod__( other )
+    def __divmod__(self, other): return self.get_value( ).__divmod__( other )
+    def __pow__(self, other, modulo=1): return self.get_value( ).__pow__( other, modulo )
+    def __lshift__(self, other): return self.get_value( ).__lshift__( other )
+    def __rshift__(self, other): return self.get_value( ).__rshift__( other )
+    def __and__(self, other): return self.get_value( ).__and__( other )
+    def __xor__(self, other): return self.get_value( ).__xor__( other )
+    def __or__(self, other): return self.get_value( ).__or__( other )
+    def __div__(self, other): return self.get_value( ).__div__( other )
+    def __truediv__(self, other): return self.get_value( ).__truediv__( other )
+    def __radd__(self, other): return self.get_value( ).__radd__( other )
+    def __rsub__(self, other): return self.get_value( ).__rsub__( other )
+    def __rmul__(self, other): return self.get_value( ).__rmul__( other )
+    def __rdiv__(self, other): return self.get_value( ).__rdiv__( other )
+    def __rtruediv__(self, other): return self.get_value( ).__rtruediv__( other )
+    def __rfloordiv__(self, other): return self.get_value( ).__rfloordiv__( other )
+    def __rmod__(self, other): return self.get_value( ).__rmod__( other )
+    def __rdivmod__(self, other): return self.get_value( ).__rdivmod__( other )
+    def __rpow__(self, other): return self.get_value( ).__rpow__( other )
+    def __rlshift__(self, other): return self.get_value( ).__rlshift__( other )
+    def __rrshift__(self, other): return self.get_value( ).__rrshift__( other )
+    def __rand__(self, other): return self.get_value( ).__rand__( other )
+    def __rxor__(self, other): return self.get_value( ).__rxor__( other )
+    def __ror__(self, other): return self.get_value( ).__ror__( other )
+    def __iadd__(self, other): return self.get_value( ).__iadd__( other )
+    def __isub__(self, other): return self.get_value( ).__isub__( other )
+    def __imul__(self, other): return self.get_value( ).__imul__( other )
+    def __idiv__(self, other): return self.get_value( ).__idiv__( other )
+    def __itruediv__(self, other): return self.get_value( ).__itruediv__( other )
+    def __ifloordiv__(self, other): return self.get_value( ).__ifloordiv__( other )
+    def __imod__(self, other): return self.get_value( ).__imod__( other )
+    def __ipow__(self, other, modulo=1): return self.get_value( ).__ipow__( other, modulo )
+    def __ilshift__(self, other): return self.get_value( ).__ilshift__( other )
+    def __irshift__(self, other): return self.get_value( ).__irshift__( other )
+    def __iand__(self, other): return self.get_value( ).__iand__( other )
+    def __ixor__(self, other): return self.get_value( ).__ixor__( other )
+    def __ior__(self, other): return self.get_value( ).__ior__( other )
+    def __neg__(self): return self.get_value( ).__neg__( )
+    def __pos__(self): return self.get_value( ).__pos__( )
+    def __abs__(self): return self.get_value( ).__abs__( )
+    def __invert__(self): return self.get_value( ).__invert__( )
+    def __complex__(self): return self.get_value( ).__complex__( )
+    def __int__(self): return self.get_value( ).__int__( )
+    def __long__(self): return self.get_value( ).__long__( )
+    def __float__(self): return self.get_value( ).__float__( )
+    def __oct__(self): return self.get_value( ).__oct__( )
+    def __hex__(self): return self.get_value( ).__hex__( )
+    def __index__(self): return self.get_value( ).__index__( )
+    def __coerce__(self, other): return self.get_value( ).__coerce__( other )
 
-    def is_ready( self ):
-        if self.cache :
-            return True
-        return self.queue.qsize( ) > 0
-
-    def set_value( self, value ):
-        self.queue.put( value )
-
-    def get_value( self, timeout=Ellipsis ):
-        if self.cache :
-            return self.cache
-        if self.queue.qsize( ) == 0 :
-            # The result is not ready yet
-            if timeout == 0 :
-                raise FutureShock( 'no value' )
-            if timeout == Ellipsis :
-                # wait forever for a result
-                self.cache = self.queue.get( )
-                return self.cache
-            else:
-                # Will raise Empty on timeout
-                try :
-                    self.cache = self.queue.get( timeout=timeout )
-                    return self.cache
-                except Empty:
-                    raise FutureShock( 'timeout' )
-        self.cache = self.queue.get( )
-        return self.cache
-    
 
 class DistributedMethod :
     def __init__( self, name, future, *args, **kwds ):
@@ -87,7 +96,7 @@ class ProxyMethodWrapper:
         self.queue, self.name = queue, name
 
     def __call__( self, *args, **kwds ):
-        f = Future( )
+        f = InternalFuture( )
         self.queue.put( DistributedMethod( self.name, f, *args, **kwds))
         return f
 
@@ -134,8 +143,8 @@ class Runner( Thread ) :
                 try:
                     m.future.set_value( func( *m.args, **m.kwds ))
                 except:
-                    print 'Exception: %s %s' % ( m.name, sys.exc_info( )[1])
-                    self.manager.log( self.task, "funccall %s failed: %s" % ( m.name, sys.exc_info( )[1] ))
+                    syslog( 'Exception: %s %s' % ( m.name, sys.exc_info( )[1]))
+                    self.manager.log( self.task, "funccall %s failed: %s (%s)" % ( m.name, sys.exc_info( )[1], traceback.format_exc( ) ))
                     self.task._state.exception( m.name )
             except Empty :
                 if self.state == "Ready" :
@@ -196,7 +205,7 @@ class Manager :
                         if os.access( module.conf, os.R_OK ):
                             execfile( module.conf, { 'task' : module.task } )
                         else:
-                            print 'Warning: %s could not be read' % module.conf
+                            syslog( 'Warning: %s could not be read' % module.conf )
                     module.task.conf( )
             prio += 1
         self.state = "Configured"
@@ -209,7 +218,7 @@ class Manager :
                 if module.prio == prio:
                     module.runner.start( )
                     module.proxy.start( )
-                    self.log( module.task, "Starting runner: %s" % name )
+                    self.log( module.task, "%d: Starting runner: %s" % ( prio, name ))
             prio += 1
         self.state = "Running"
 
