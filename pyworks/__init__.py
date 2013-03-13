@@ -225,11 +225,7 @@ class Task :
     
     def timeout( self ):
         pass
-<<<<<<< local
 
     def exception( self, method ):
         pass
         
-    =======
-    
->>>>>>> other

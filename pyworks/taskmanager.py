@@ -4,13 +4,13 @@ import sys, threading, time, os, traceback
 from pyworks import Future, NoFuture, syslog
 
 
-class Module :
+class Module( object ):
     def __init__( self, name, conf, factory, task=None, proxy=None, runner=None ):
         self.name, self.conf, self.factory, self.task, self.proxy, self.runner = name, conf, factory, task, proxy, runner
         self.index = 0
         self.prio = 5
         self.listeners = {}
-
+        
     def get_listeners( self ):
         return self.listeners.values( )
     
