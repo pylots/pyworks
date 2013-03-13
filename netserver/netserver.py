@@ -3,7 +3,7 @@ from pyworks.net import NetTask, ServerConnection, AsciiProtocol, STXETXProtocol
 
 class EchoServerTask( NetTask ):
     def init( self ):
-        address = ('localhost', 0) # let the kernel give us a port
+        address = ('localhost', 8080) # let the kernel give us a port
         self.conn = ServerConnection( self.get_service( ), address, protocol=AsciiProtocol )
         self.count = 1
         
@@ -22,15 +22,16 @@ class EchoServerTask( NetTask ):
         
     def net_received( self, conn, tlg ):
         self.log( "Server received: '%s'" % tlg )
-        conn.send( 'From Server count: %d' % self.count )
+        # conn.send( 'From Server count: %d' % self.count )
         self.count += 1
         
     def net_timeout( self, conn ):
         self.log( 'Server: net_timeout' )
 
     def timeout( self ):
-        conn.send( 'timeout')
-        
+        # self.conn.send( 'timeout')
+        pass
+
     def activated( self ):
         self.log( 'ACTIVATED...' )
         

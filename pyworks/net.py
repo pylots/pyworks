@@ -60,7 +60,7 @@ class Connection :
         t.start( )
     
     def send( self, msg ):
-        if self.protocol :
+        if self.protocol and self.sock :
             self.protocol.send( self.sock, msg )
         
     def level1( self ):
