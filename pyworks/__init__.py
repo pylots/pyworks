@@ -126,30 +126,30 @@ class Node :
         self.nodes[ node.nid ] = node
         return node
 
-    def getNid( self ):
+    def get_nodeid( self ):
         if self.parent == None :
             return self.nid
-        return self.parent.getNid( ) + '.' + self.name
+        return self.parent.get_nodeid( ) + '.' + self.name
 
-    def getVal( self ):
+    def get_val( self ):
         return self.val
     
-    def setVal( self, val ):
+    def set_val( self, val ):
         if self.val != val :
             self.val = val
             self.notify( self )
         
-    def getNode( self, nid ):
+    def get_node( self, nid ):
         return self.nodes[ nid ]
 
-    def lookUp( self, nid ):
+    def lookup( self, nid ):
         node = self
         for k in nid.split( '.' ):
             if node.hasKey( k ):
-                node = node.getNode( k )
+                node = node.get_node( k )
         return node
 
-    def hasNid( self, nid ):
+    def has_nodeid( self, nid ):
         return nid in self.nodes
 
     def level( self ):

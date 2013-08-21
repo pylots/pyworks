@@ -2,11 +2,6 @@ from pyworks import Task, FutureShock, Filter, Future
 
 from time import time
 
-class ClientFilter( Filter ):
-    def filter( self, method, *args, **kwargs ):
-        # We just want everything
-        return True
-    
 class ClientTask( Task ) :
     def setNtimeout( self, n ):
         self.ntimeout = n
@@ -17,7 +12,7 @@ class ClientTask( Task ) :
         self.worker = self.get_service( "worker" )
 
     def conf( self ):
-        self.add_listener( "worker", filter=ClientFilter( )  )
+        self.add_listener( "worker" )
 
     def timeout( self ):
         self.log( "timeout: %d" % self.ntimeout )

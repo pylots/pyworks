@@ -242,7 +242,7 @@ class DomainModel:
         for n in name.split( '.' ):
             if not node.hasKey( n ):
                 node.addNode( eval( '%sNode( n, dtype="%s" )' % ( dtype, dtype )))
-            node = node.getNode( n )
+            node = node.get_node( n )
         node.val = val
 
     def setValue( self, name, val ):
