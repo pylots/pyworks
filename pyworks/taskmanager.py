@@ -199,8 +199,8 @@ class Manager :
         while prio < self.prio :
             for name, module in self.modules.items( ) :
                 if module.prio == prio :
-                    if os.access( 'conf/global.conf', os.R_OK ):
-                        execfile( 'conf/global.conf', { 'task' : module.task })
+                    if os.access( 'conf/coworks.conf', os.R_OK ):
+                        execfile( 'conf/coworks.conf', { 'task' : module.task })
                     if module.conf :
                         if os.access( module.conf, os.R_OK ):
                             execfile( module.conf, { 'task' : module.task } )
