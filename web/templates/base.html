@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>
+            {% block title %}coworks{% endblock title %}
+        </title>
+        <meta name="viewport" content="width=device-width, intitial-scale=1.0">
+        <meta name="description" content="">
+        {% block stylesheets %}
+            <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.css')}}">
+            <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap-responsive.css')}}">
+            <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+        {% endblock stylesheets %}
+        <style>
+            body { padding-top: 60px; }
+        </style>
+    </head>
+    <body>
+        <div class="navbar navbar-inverse navbar-fixed-top">
+          <div class="navbar-inner">
+            <div class="container">
+              <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+                <span class="icon-bar">xxx</span>
+                <span class="icon-bar">yyy</span>
+                <span class="icon-bar">zzz</span>
+              </button>
+              <a class="brand" href="{{ url_for( 'main' ) }}">coworks</a>
+              <div class="nav-collapse collapse">
+	      {% if user.is_authenticated() %}
+                <ul class="nav">
+                  <li class="active"><a href="{{ url_for('tasks') }}">Tasks</a></li>
+                  <li><a href="#logging">Logging</a></li>
+                  <li><a href="#contact">Contact</a></li>
+                  <li><a href="{{ url_for( 'users' ) }}">Users</a></li>
+                  <li class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                      <li><a href="#">Action</a></li>
+                      <li><a href="#">Another action</a></li>
+                      <li><a href="#">Something else here</a></li>
+                      <li class="divider"></li>
+                      <li class="nav-header">Nav header</li>
+                      <li><a href="#">Separated link</a></li>
+                      <li><a href="#">One more separated link</a></li>
+                    </ul>
+                  </li>
+                </ul>
+		{% endif %}
+                {% if user.is_authenticated() %}
+                    <ul class="nav pull-right">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ user.username() }} <b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="#">My Account</a></li>
+                                <li class="divider"></li>
+                                <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                {% else %}
+                    <form class="navbar-form pull-right" method="POST"
+		    action="{{ url_for( 'login') }}">
+                      <input class="span2" name="username" type="text" placeholder="User">
+                      <input class="span2" name="password" type="password" placeholder="Password">
+                      <button type="submit" class="btn">Login</button>
+                    </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% block messages %}
+            {% if messages %}
+                <div class="alert">
+                    <ul class="messages">
+                        {% for message in messages %}
+                            <li id="message_{{ forloop.counter }}"
+                                {% if message.tags %} class="{{ message.tags }}"
+                                    {% endif %}>
+                                {{ message }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        {% endblock messages%}
+
+        <div class="container">
+            {% block body %}
+            {% endblock body %}
+        </div>
+
+        {% block scripts %}
+	    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+            <script src="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+        {% endblock scripts %}
+    </body>
+</html>
+

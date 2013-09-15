@@ -1,10 +1,16 @@
 import sys, os
 
+sys.path.append( '/projects/pyworks/libs')
+
 from pyworks.taskmanager import Module, Manager
+from web.task import WebTask
 
 from logger.logger import LoggerTask
 
-sys_tasks = { "logger" : Module( "logger", "./logger/logger.conf", LoggerTask ) }
+sys_tasks = { 
+    "ux" : Module( "ux", "./web/web.conf", WebTask ),
+    "logger" : Module( "logger", "./logger/logger.conf", LoggerTask )
+}
 
 class Tasks :
     def __init__( self ):

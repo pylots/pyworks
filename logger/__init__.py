@@ -4,3 +4,7 @@ ERROR = 1
 FATAL = 0
 
 Levels = [ 'Fatal', 'Error', 'Warn', 'Debug' ]
+
+class LogTest :
+    pass
+

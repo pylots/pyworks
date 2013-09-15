@@ -76,8 +76,8 @@ class InternalFuture( Future ):
 
 
 class DistributedMethod :
-    def __init__( self, name, future, *args, **kwds ):
-        self.name, self.future, self.args, self.kwds = name, future, args, kwds
+    def __init__( self, task, name, future, *args, **kwds ):
+        self.task, self.name, self.future, self.args, self.kwds = task, name, future, args, kwds
 
 
 class DispatchMethodWrapper:
@@ -88,16 +88,16 @@ class DispatchMethodWrapper:
         # dispatch to all the listeners
         for listener in self.task.get_listeners( ):
             if listener[ 'filter' ].filter( self.method, *args, **kwds ):
-                listener[ 'task' ].get_queue( ).put( DistributedMethod( self.method, NoFuture(), *args, **kwds))
+                listener[ 'task' ].get_queue( ).put( DistributedMethod( self.task, self.method, NoFuture(), *args, **kwds))
 
 
 class ProxyMethodWrapper:
-    def __init__( self, queue, name ):
-        self.queue, self.name = queue, name
+    def __init__( self, task, queue, name ):
+        self.task, self.queue, self.name = task, queue, name
 
     def __call__( self, *args, **kwds ):
         f = InternalFuture( )
-        self.queue.put( DistributedMethod( self.name, f, *args, **kwds))
+        self.queue.put( DistributedMethod( self.task, self.name, f, *args, **kwds))
         return f
 
 
@@ -120,7 +120,7 @@ class Proxy(object):
         if name.startswith('_'):
             return object.__getattribute__(self, name)
         else:
-            return ProxyMethodWrapper( self._runner.queue, name )
+            return ProxyMethodWrapper( self._name, self._runner.queue, name )
 
     
 class Runner( Thread ) :
@@ -140,6 +140,7 @@ class Runner( Thread ) :
                 m = self.queue.get( timeout=self.task._timeout )
                 func = getattr( self.task._state, m.name )
                 self.state = "Working"
+                # print 'from %s, doing: %s' % ( m.task, func )
                 try:
                     m.future.set_value( func( *m.args, **m.kwds ))
                 except:
@@ -163,8 +164,9 @@ class Manager :
         if self.state != "Running" :
             return
         module = self.modules[ "logger" ]
-        msg = "q:%d, %s" % ( module.runner.queue.qsize( ), msg )
-        module.proxy.log( task, 2, msg )
+        qsize = module.runner.queue.qsize( )
+        msg = "q:%d, %s" % ( qsize, msg )
+        module.proxy.dolog( task, 2, msg )
         
     def error( self, task, msg ):
         self.modules[ "logger" ].proxy.log( task, 1, msg )

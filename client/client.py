@@ -5,7 +5,8 @@ from time import time
 class ClientTask( Task ) :
     def setNtimeout( self, n ):
         self.ntimeout = n
-        
+        self.count = 1
+
     def init( self ):
         self.ntimeout = 0
         self.answers = []
@@ -20,7 +21,7 @@ class ClientTask( Task ) :
         if self.ntimeout == 2 or self.ntimeout == 4 :
             return
             start = time()
-            n = 10000 * self.ntimeout
+            n = self.count * self.ntimeout
             for i in range( n ):
                 a = self.worker.hello( i, "hello, from %s: %d" % ( self.get_name( ), self.ntimeout ))
                 self.answers.append( a )
