@@ -9,7 +9,7 @@ class RingTask( Task ) :
     def init( self ):
         self.count = 1
         self.n = self.get_index( ) + 1
-        if self.get_index( ) == 99 :
+        if self.get_index( ) >= 99 :
             self.n = 0
         self.log( "%s: ring%d->ring%d" % ( self.get_name( ), self.get_index( ), self.n ))
         self.next = self.get_service( "ring%d" % self.n )
