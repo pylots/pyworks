@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import os
 from sqlite3 import dbapi2 as sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash
 from flask.ext import restful
 
 from flask_login import LoginManager, login_user, logout_user, UserMixin, current_user
+
+from settings import PRODIR
 
 # create our little application :)
 app = Flask(__name__)
@@ -14,7 +17,7 @@ login_manager.init_app(app)
 
 # Load default config and override config from an environment variable
 app.config.update(dict(
-    DATABASE='/tmp/coworks.db',
+    DATABASE=os.path.join( PRODIR, 'db', 'coworks.db' ),
     DEBUG=True,
     SECRET_KEY='development key',
     USERNAME='admin',
@@ -154,13 +157,17 @@ def tasks():
                 qsize=module.runner.queue.qsize(),
                 prio=module.prio,
                 index=module.index,
-                state=module.task._state.__class__.__name__
+                state=module.task._state.__class__.__name__,
+                pid=module.pid
                 ))
     return render_template('tasks.html', tasks=tasks)
 
-@app.route('/show_task/<task>', methods=['GET'])
-def show_task(task):
-    return render_template('show_task.html', task=task)
+@app.route('/show_task/<name>', methods=['GET'])
+def show_task( name ):
+    print 'task %s' % name
+    manager = app.config[ 'COWORKS' ]
+    module = manager.get_module( name )
+    return render_template('show_task.html', module=module )
 
 
 @app.route('/login', methods=['GET', 'POST'])

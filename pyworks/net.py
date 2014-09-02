@@ -6,7 +6,7 @@ from Queue import Queue, Empty
 
 from pyworks import Task
 
-class Protocol :
+class Protocol( object ):
     def __init__( self ):
         pass
     
@@ -36,14 +36,41 @@ class AsciiProtocol( Protocol ):
     def decode( self, msg ):
         return msg[2:-2]
 
-class STXETXProtocol( Protocol ):
+class PlainProtocol( Protocol ):
     def encode( self, msg ):
+        return str(msg)
+
+    def decode( self, msg, sock ):
+        return str( msg )
+
+class STXETXProtocol( Protocol ):
+    def __init__(self):
+        self.buffer = ""
+        
+    def encode( self, msg ):
+        # Note: This does not implement stuffing, it should /rne
         return "\x02%s\x03" % msg
 
     def decode( self, msg ):
-        if msg[0] == 0x02 and msg[:-1] == 0x03 :
-            print '<STX>%s<ETX>' % msg[1:-1]
-            return msg[1:-1]
+        self.buffer += msg
+        result = []
+        
+        # strip away any bad messages
+        while (len(self.buffer)>0) and (self.buffer[0] != "\x02"):
+            self.buffer = self.buffer[1:]
+        
+        # do the buffer contain a full telegram
+        while (len( self.buffer )>0) and (self.buffer.find("\x03")!=-1):
+            pos = self.buffer.find( "\x03" )
+            m = self.buffer[1:pos]
+            self.buffer = self.buffer[pos+1:]
+            if len(m)>0:
+                result.append( m )
+            else:
+                # reply to heartbeat
+                self.send( sock, '' )
+                
+        return result
         
 
 class Connection :
@@ -51,17 +78,26 @@ class Connection :
         self.task = task
         self.address = address
         self.connections = connections
+        self.q = Queue( )
         self.sock = None
         self.protocol = protocol( )
+        self.t = None
+        self.stop = False
         
     def connect( self ):
-        t = Thread( target=self.run )
-        t.setDaemon( True )
-        t.start( )
+        self.stop = False
+        self.t = Thread( target=self.run )
+        self.t.setDaemon( True )
+        self.t.start( )
+    
+    def disconnect( self ):
+        if self.stop == False and self.t != None:
+            self.stop = True
+            while self.stop == True:
+                time.sleep( 1 )
     
     def send( self, msg ):
-        if self.protocol and self.sock :
-            self.protocol.send( self.sock, msg )
+        self.q.put( msg )
         
     def level1( self ):
         return True
@@ -70,34 +106,50 @@ class Connection :
         return True
 
     def level3( self ):
+        try:
+            buf = self.q.get( False )
+            self.protocol.send( self.sock, buf )
+        except Empty :
+            pass
         try :
             inputs = [ self.sock ]
             outputs = []
             self.sock.setblocking( 0 ) # Jython compatibility
-            input, output, x = select( inputs, [], [], 1 )
+            input, output, x = select( inputs, [], [], 0.1 )
             if not input :
                 if self.protocol.timeout( self ):
                     self.task.net_timeout( self )
                 return True
             tlg = self.protocol.receive( self.sock )
-            self.task.net_received( self, tlg )
+            for telegram in tlg:
+                self.task.net_received( self, telegram )
         except:
             self.task.log( "Exception in socket.recv: %s" % sys.exc_info()[1] )
             return False
         return True
     
     def run( self ):
-        print '%s running' % self
-        while True :
-            while self.level1( ):
-                self.task.net_up( self, 1 )
-                while self.level2( ):
-                    self.task.net_up( self, 2 )
-                    while self.level3( ):
-                        pass
-                    self.task.net_down( self, 2 )
-                self.task.net_down( self, 1 )
-            time.sleep( 5 )
+        try:
+            print '%s running' % self
+            while self.stop == False:
+                while self.level1( ) and self.stop == False:
+                    print "passed level 1"
+                    self.task.net_up( self, 1 )
+                    while self.level2( ) and self.stop == False:
+                        print "passed level 2"
+                        self.task.net_up( self, 2 )
+                        while self.level3( ) and self.stop == False:
+                            pass
+                        self.task.net_down( self, 2 )
+                    self.task.net_down( self, 1 )
+                time.sleep( 5 )
+        except:
+            pass
+        print "closing socket"
+        self.sock.close()
+        self.sock = None
+        self.stop = False
+        print '%s stopped' % self
 
 
 class ServerConnection( Connection ):
@@ -144,7 +196,7 @@ class NetTask( Task ):
         pass
         
     def net_received( self, conn, msg ):
-        pass
+        self.info( "received: "+msg )
 
     def net_timeout( self, conn ):
         pass

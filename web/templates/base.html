@@ -16,6 +16,42 @@
         </style>
     </head>
     <body>
+	<script>
+        try {
+	    var ws = new WebSocket("ws://localhost:5010/");
+
+	    ws.onmessage = function( evt ) {
+		args = evt.data.split( ":" );
+		var div = document.getElementById(args[0]);
+		div.innerHTML = args[1] ;
+	    };
+
+	    ws.onopen = function( event ) {
+		function schedule(i) {
+		    setTimeout(function() { 
+		      ws.send('Hello from the client! (iteration ' + i + ')');
+		      schedule(i + 1);
+		    }, 1000);            
+		};
+		schedule(1);            
+		var div = document.getElementById( "ServerStatus" );
+		div.innerHTML = "Connected" ;
+	    };
+
+	    ws.onclose = function( evt ) {
+		var div = document.getElementById( "ServerStatus" );
+		div.innerHTML = "Disconnected" ;
+	    }
+
+	    ws.onerror = function( evt ) {
+		var div = document.getElementById( "ServerStatus" );
+		div.innerHTML = "Server Error: " + evt.data ;
+	    }
+        } catch ( exception ) {
+            var div = document.getElementById( "ServerStatus" );
+            div.innerHTML = "Server Exception: " + exception.data ;
+        }
+	</script>
         <div class="navbar navbar-inverse navbar-fixed-top">
           <div class="navbar-inner">
             <div class="container">
@@ -30,7 +66,8 @@
                 <ul class="nav">
                   <li class="active"><a href="{{ url_for('tasks') }}">Tasks</a></li>
                   <li><a href="#logging">Logging</a></li>
-                  <li><a href="#contact">Contact</a></li>
+		  <li><a href="#">Alarms<span class="badge badge-important" id="alarms">0</span></a></li>
+		  <li><a href="#contact">Contact</a></li>
                   <li><a href="{{ url_for( 'users' ) }}">Users</a></li>
                   <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
@@ -44,10 +81,12 @@
                       <li><a href="#">One more separated link</a></li>
                     </ul>
                   </li>
+		  <li><a href="#"><div id="message"></div></a></li>
                 </ul>
 		{% endif %}
                 {% if user.is_authenticated() %}
                     <ul class="nav pull-right">
+		      <li><a href="#"><span class="badge badge-default" id="ServerStatus">Not connected</span></a></li>
                         <li class="dropdown">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ user.username() }} <b class="caret"></b></a>
                             <ul class="dropdown-menu">

@@ -1,6 +1,6 @@
 PyWorks - a small concurrent framework for Python
 
-  Ever since i first worked with threads in Java 15 years I have been
+  Ever since i first worked with threads in Java 15 years ago, I have been
 struggeling with the concept. Before that I was used to C and a homegrown "OS"
 called Daros. It had Task "preemtive processes", Messages and Queues. For me
 it was much easier to comprehend the one Task == one thread concept.

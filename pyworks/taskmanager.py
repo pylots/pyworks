@@ -1,4 +1,8 @@
-from Queue import Queue, Empty
+try:
+    from queue import Queue, Empty
+except ImportError:
+    from Queue import Queue, Empty
+        
 from threading import Thread
 import sys, threading, time, os, traceback
 from pyworks import Future, NoFuture, syslog
@@ -8,8 +12,10 @@ class Module( object ):
     def __init__( self, name, conf, factory, task=None, proxy=None, runner=None ):
         self.name, self.conf, self.factory, self.task, self.proxy, self.runner = name, conf, factory, task, proxy, runner
         self.index = 0
+        self.pid = 0
         self.prio = 5
         self.listeners = {}
+        self.daemon = 0
         
     def get_listeners( self ):
         return self.listeners.values( )
@@ -73,6 +79,9 @@ class InternalFuture( Future ):
     def __hex__(self): return self.get_value( ).__hex__( )
     def __index__(self): return self.get_value( ).__index__( )
     def __coerce__(self, other): return self.get_value( ).__coerce__( other )
+    def __str__(self): return self.get_value( ).__str__( )
+    def __repr__(self): return self.get_value( ).__repr__( )
+    def __unicode__(self): return self.get_value( ).__unicode__( )
 
 
 class DistributedMethod :
@@ -138,6 +147,10 @@ class Runner( Thread ) :
             try:
                 self.state = "Ready"
                 m = self.queue.get( timeout=self.task._timeout )
+                if not hasattr( self.task._state, m.name ):
+                    syslog( "%s does not have %s" % ( self.task._state, m.name ))
+                    self.task._state.not_implemented( m.name )
+                    continue
                 func = getattr( self.task._state, m.name )
                 self.state = "Working"
                 # print 'from %s, doing: %s' % ( m.task, func )
@@ -153,8 +166,10 @@ class Runner( Thread ) :
         self.state = "Stopped"
 
 
-class Manager :
-    def __init__( self ):
+class Manager( object ):
+    pid = 0
+    def __init__( self, env="coworks" ):
+        self.env = env
         self.modules = {}
         self.prio = 0
         self.name = "Manager"
@@ -171,7 +186,7 @@ class Manager :
     def error( self, task, msg ):
         self.modules[ "logger" ].proxy.log( task, 1, msg )
     
-    def loadModules( self, task_list ):
+    def loadModules( self, task_list, daemon=0 ):
         self.state = "Loading"
         index = 0
         for name, module in task_list.items( ) :
@@ -179,11 +194,15 @@ class Manager :
             module.task = module.factory( module, self )
             module.task._dispatch = Dispatcher( module.task )
             module.runner = Runner( self, module )
+            module.runner.daemon = daemon
             module.proxy = Proxy( module.runner, module.name )
             module.prio = self.prio
             module.index = index
+            module.pid = Manager.pid
+            module.daemon = daemon
             self.modules[ name ] = module
             index += 1
+            Manager.pid += 1
         # Every time loadModules is called it is Task's with lower prio
         self.prio += 1
         self.state = "Loaded prio: %d" % self.prio
@@ -201,8 +220,8 @@ class Manager :
         while prio < self.prio :
             for name, module in self.modules.items( ) :
                 if module.prio == prio :
-                    if os.access( 'conf/coworks.conf', os.R_OK ):
-                        execfile( 'conf/coworks.conf', { 'task' : module.task })
+                    if os.access( 'conf/%s.py' % self.env, os.R_OK ):
+                        execfile( 'conf/%s.py' % self.env, { 'task' : module.task })
                     if module.conf :
                         if os.access( module.conf, os.R_OK ):
                             execfile( module.conf, { 'task' : module.task } )
@@ -260,3 +279,8 @@ class Manager :
     def get_modules( self ):
         return self.modules.values()
 
+    def get_module( self, name ):
+        if name in self.modules :
+            return self.modules[ name ]
+        return None
+    

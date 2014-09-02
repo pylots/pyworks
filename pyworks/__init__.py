@@ -194,6 +194,15 @@ class Task :
 
     def get_name( self ):
         return self._name
+
+    def get_manager( self ):
+        return self._manager
+    
+    def get_pid( self ):
+        return self._module.pid
+
+    def get_index( self ):
+        return self._index
     
     def set_state( self, state ):
         self._state = state( self )

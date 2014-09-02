@@ -1,14 +1,22 @@
-import sys, os
+#!/usr/bin/env python
+#
+# pyworks - a taskframework
+#
+# Copyright (C) logistics.as
+#
 
-sys.path.append( '/projects/pyworks/libs')
+import os, sys
+import settings
 
 from pyworks.taskmanager import Module, Manager
-from web.task import WebTask
+from web.tasks import WebServer, SocketServer, TestTask
 
 from logger.logger import LoggerTask
 
 sys_tasks = { 
-    "ux" : Module( "ux", "./web/web.conf", WebTask ),
+    "ux" : Module( "ux", "./web/web.conf", WebServer ),
+    "wstest" : Module( "wstest", "./web/web.conf", TestTask ),
+    "ws" : Module( "ws", "./web/ws.conf", SocketServer ),
     "logger" : Module( "logger", "./logger/logger.conf", LoggerTask )
 }
 
@@ -28,7 +36,7 @@ def user_tasks( manager, conffile ):
 
 if __name__ == "__main__" :
     m = Manager( )
-    m.loadModules( sys_tasks )
+    m.loadModules( sys_tasks, daemon=1 )
     m.loadModules( user_tasks( m, 'conf/usertasks.py' ) )
     m.initModules( )
     m.confModules( )
@@ -64,6 +72,7 @@ if __name__ == "__main__" :
     
     # wait for all to close
     for name, module in m.modules.items( ) :
-        module.runner.join( )
+        if not module.daemon :
+            module.runner.join( )
     
     
