@@ -7,15 +7,20 @@ from StringIO import StringIO
 
 import threading, time
 
+from pyworks.util import Logger, DEBUG, WARN, ERROR
+
 class WebSocketsHandler(SocketServer.StreamRequestHandler):
     magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
- 
+
     def setup(self):
         SocketServer.StreamRequestHandler.setup(self)
         # print "connection established: %s on %s" % ( self.client_address, threading.current_thread( ).name )
         self.handshake_done = False
         self.wserver = None
-        
+        self.logger = Logger( name="ws", logfile="web" )
+        print "Logger is ", self.logger
+        self.logger.log( WARN, "Ready...")
+
     def handle(self):
         while True:
             if not self.handshake_done:
@@ -24,7 +29,7 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
                 except:
                     if self.wserver :
                         self.wserver.del_client( self )
-                        continue
+                        self.wserver = None
                 if self.handshake_done and self.wserver == None :
                     self.wserver = self.manager.get_service( "ws" )
                     self.wserver.add_client( self )
@@ -36,11 +41,11 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
     def read_next_message(self):
         start = self.rfile.read( 2 )
         if len( start ) == 0 :
-            print "read_next_message: read 0"
+            self.logger.log( WARN, "read_next_message: read 0" )
             self.handshake_done = False
             return
         if len( start ) < 2 :
-            print "read_next_message: read < 2"
+            self.logger.log( WARN, "read_next_message: read < 2" )
             return
         # length = ord(self.rfile.read(2)[1]) & 127
         length = ord( start[ 1 ]) & 127
@@ -74,7 +79,7 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
         headers = Message(StringIO(data.split('\r\n', 1)[1]))
         if headers.get("Upgrade", None) != "websocket":
             return
-        print 'Handshaking...'
+        self.logger.log( DEBUG, 'Handshaking...' )
         key = headers['Sec-WebSocket-Key']
         digest = b64encode(sha1(key + self.magic).hexdigest().decode('hex'))
         response = 'HTTP/1.1 101 Switching Protocols\r\n'
@@ -104,6 +109,3 @@ class ws_server( object ):
         
     def serve_forever( self ):
         self.server.serve_forever( )
-        
-    def send( self, message ):
-        self.handler
