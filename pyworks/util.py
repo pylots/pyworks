@@ -1,21 +1,18 @@
 from datetime import datetime
 
-from pyworks import Task
-
 LOGDIR="log"
 
 ERROR=0
 WARN=1
-DEBUG=2
+INFO=2
+DEBUG=3
+
+levels = [ 'ERROR', 'WARN', 'INFO', 'DEBUG']
 
 class Logger( object ):
     def __init__( self, name=None, logfile="logger" ):
-        if isinstance( name, Task ):
-            task = name
-            self.name = task.get_name( )
-        else:
-            self.name = name
-        self.level = 1
+        self.name = name
+        self.level = INFO
         self._log = open( "log/%s" % logfile, "a" )
         self._log.write( "***init***\n" )
         self._log.flush( )
@@ -24,7 +21,7 @@ class Logger( object ):
         self.level = level
 
     def log( self, level, text ):
-        msg = "%d %s: [%s] %s\n" % ( level, datetime.now( ).strftime( "%H%M%S" ), self.name, text )
+        msg = "%s %s [%s] %s\n" % ( datetime.now( ).strftime( "%y%m%d:%H%M%S" ), levels[ level ], self.name, text )
 
         if( level <= self.level ):
             self._log.write( msg )

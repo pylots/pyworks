@@ -3,6 +3,8 @@ import threading
 from datetime import datetime
 from Queue import Queue, Empty
 
+from .util import Logger, DEBUG, INFO, WARN, ERROR
+
 class FutureShock( Exception ):
     pass
 
@@ -171,6 +173,7 @@ class Task :
         self._state = self
         self._dispatch = None
         self._timeout = 2
+        self._logger = Logger( self.get_name( ))
         
     def dispatch( self ):
         return self._dispatch
@@ -208,11 +211,17 @@ class Task :
         self._state = state( self )
         self._state.enter( )
         
+    def debug( self, msg ):
+        self._logger.log( DEBUG, msg )
+
+    def warn( self, msg ):
+        self._logger.log( WARN, msg )
+        
     def log( self, msg ):
-        self._manager.log( self, msg )
+        self._logger.log( INFO, msg )
         
     def error( self, msg ):
-        self._manager.error( self, msg )
+        self._logger.log( ERROR, msg )
 
     def add_listener( self, name, filter=Filter( ) ):
         self._manager.modules[ name ].listeners[ self._name ] = { 'task' : self, 'filter' : filter }

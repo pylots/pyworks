@@ -6,7 +6,7 @@ except ImportError:
 from threading import Thread
 import sys, threading, time, os, traceback
 from pyworks import Future, NoFuture, syslog
-
+from .util import WARN, ERROR, DEBUG
 
 class Module( object ):
     def __init__( self, name, conf, factory, task=None, proxy=None, runner=None ):
@@ -181,10 +181,10 @@ class Manager( object ):
         module = self.modules[ "logger" ]
         qsize = module.runner.queue.qsize( )
         msg = "q:%d, %s" % ( qsize, msg )
-        module.proxy.dolog( task, 2, msg )
+        module.proxy.dolog( task, WARN, msg )
         
     def error( self, task, msg ):
-        self.modules[ "logger" ].proxy.log( task, 1, msg )
+        self.modules[ "logger" ].proxy.log( task, ERROR, msg )
     
     def loadModules( self, task_list, daemon=0 ):
         self.state = "Loading"

@@ -11,7 +11,7 @@ class EchoServerTask( NetTask ):
         self.conn.connect( )
 
     def net_ready( self, address ):
-        print 'Net is ready....%s:%d' % address
+        self.log( 'Net is ready....%s:%d' % address )
         self.dispatch( ).server_ready( address )
         
     def net_up( self, conn, level ):

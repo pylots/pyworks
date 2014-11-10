@@ -7,71 +7,84 @@ from Queue import Queue, Empty
 from pyworks import Task
 
 class Protocol( object ):
-    def __init__( self ):
-        pass
-    
-    def encode( self, msg ):
-        return msg
+    def swrite( self, sock, buffer ):
+        sock.send( buffer )
+        
+    def sread( self, sock ):
+        return sock.recv( 4096 )
+        
+    def send( self, sock, buffer ):
+        self.swrite( sock, buffer )
 
-    def decode( self, msg ):
-        return msg
-    
     def receive( self, sock ):
-        tlg = sock.recv( 4096 )
-        msg = self.decode( tlg )
-        return msg
+        buffer = self.sread( sock )
+        yield buffer
     
-    def send( self, sock, msg ):
-        tlg = self.encode( msg )
-        sock.send( tlg )
-
     def timeout( self, sock ):
-        return True
+        return False
 
-    
-class AsciiProtocol( Protocol ):
-    def encode( self, msg ):
-        return "<<%s>>" % msg
 
-    def decode( self, msg ):
-        return msg[2:-2]
+HUNT = 1
+TELE = 2
+SKIP = 3
 
-class PlainProtocol( Protocol ):
-    def encode( self, msg ):
-        return str(msg)
-
-    def decode( self, msg, sock ):
-        return str( msg )
-
-class STXETXProtocol( Protocol ):
-    def __init__(self):
+class FramedProtocol( Protocol ):
+    def __init__( self, start='<', end='>', escape='\\' ):
+        self.start = start
+        self.end = end
+        self.escape = escape
+        self.state = HUNT
         self.buffer = ""
+        self.count = 0
+        self.maxlen = 1000000
         
-    def encode( self, msg ):
-        # Note: This does not implement stuffing, it should /rne
-        return "\x02%s\x03" % msg
+    def receive( self, sock ):
+        n = 0
+        for line in self.sread( sock ):
+            for c in line :
+                n += 1
+                if n > self.maxlen :
+                    print "Telegram too long"
+                    yield self.buffer
+                if self.state == HUNT:
+                    if c == self.start :
+                        self.state = TELE
+                elif self.state == SKIP :
+                    self.buffer += c
+                    self.state = TELE
+                elif self.state == TELE :
+                    if c == self.end :
+                        yield self.buffer
+                        self.state = HUNT
+                        self.buffer = ""
+                    elif c == self.escape :
+                        self.state = SKIP
+                    else:
+                        self.buffer += c
 
-    def decode( self, msg ):
-        self.buffer += msg
-        result = []
-        
-        # strip away any bad messages
-        while (len(self.buffer)>0) and (self.buffer[0] != "\x02"):
-            self.buffer = self.buffer[1:]
-        
-        # do the buffer contain a full telegram
-        while (len( self.buffer )>0) and (self.buffer.find("\x03")!=-1):
-            pos = self.buffer.find( "\x03" )
-            m = self.buffer[1:pos]
-            self.buffer = self.buffer[pos+1:]
-            if len(m)>0:
-                result.append( m )
-            else:
-                # reply to heartbeat
-                self.send( sock, '' )
-                
-        return result
-        
+
+    def send( self, sock, text ):
+        buffer = self.start
+        for c in text :
+            if c == self.start or c == self.end or c == self.escape:
+                buffer += self.escape
+            buffer += c
+        buffer += self.end
+        self.swrite( sock, buffer )
+
+
+class TextProtocol( Protocol ):
+    pass
+
+
+class AsciiProtocol( FramedProtocol ):
+    pass
+
+
+class STXETXProtocol( FramedProtocol ):
+    def __init__(self):
+        FramedProtocol.__init__(self, start='\x02', end='\x03', escape='\x1b')
+                        
 
 class Connection :
     def __init__( self, task, address, protocol=Protocol, connections=1 ):
@@ -114,14 +127,13 @@ class Connection :
         try :
             inputs = [ self.sock ]
             outputs = []
-            self.sock.setblocking( 0 ) # Jython compatibility
-            input, output, x = select( inputs, [], [], 0.1 )
-            if not input :
+            # self.sock.setblocking( 0 ) # Jython compatibility
+            inp, outp, x = select( inputs, [], [], 0.1 )
+            if not inp :
                 if self.protocol.timeout( self ):
                     self.task.net_timeout( self )
                 return True
-            tlg = self.protocol.receive( self.sock )
-            for telegram in tlg:
+            for telegram in self.protocol.receive( self.sock ):
                 self.task.net_received( self, telegram )
         except:
             self.task.log( "Exception in socket.recv: %s" % sys.exc_info()[1] )
@@ -130,13 +142,13 @@ class Connection :
     
     def run( self ):
         try:
-            print '%s running' % self
+            self.task.log( '%s running' % self )
             while self.stop == False:
                 while self.level1( ) and self.stop == False:
-                    print "passed level 1"
+                    self.task.log( "Level 1" )
                     self.task.net_up( self, 1 )
                     while self.level2( ) and self.stop == False:
-                        print "passed level 2"
+                        self.task.log( "Level 2" )
                         self.task.net_up( self, 2 )
                         while self.level3( ) and self.stop == False:
                             pass
@@ -144,12 +156,13 @@ class Connection :
                     self.task.net_down( self, 1 )
                 time.sleep( 5 )
         except:
+            self.task.log( "Exception in run: %s" % sys.exc_info()[1])
             pass
-        print "closing socket"
+        self.task.log( "closing socket" )
         self.sock.close()
         self.sock = None
         self.stop = False
-        print '%s stopped' % self
+        self.task.log( '%s stopped' % self )
 
 
 class ServerConnection( Connection ):

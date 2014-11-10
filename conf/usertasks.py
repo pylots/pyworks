@@ -11,10 +11,10 @@ from statetask.statetask import StateTask
 conf.addTask( "stateclient", StateTask )
 
 from netserver.netserver import EchoServerTask
-# conf.addTask( "netserver", EchoServerTask )
+conf.addTask( "netserver", EchoServerTask )
 
 from netclient.netclient import EchoClientTask
-# conf.addTask( "netclient", EchoClientTask )
+conf.addTask( "netclient", EchoClientTask )
 
 # from ring.ring import RingTask
 # for r in range( 100 ):

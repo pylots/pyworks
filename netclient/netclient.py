@@ -11,7 +11,7 @@ class EchoClientTask( NetTask ):
         self.add_listener( "netserver" )
         
     def server_ready( self, address ):
-        print 'The server is ready, connect...', address
+        self.log( 'The server is ready, connect...%s:%d' % ( address ))
         if self.conn is not None :
             self.log( "Connection already UP!" )
             return
@@ -33,7 +33,7 @@ class EchoClientTask( NetTask ):
         conn.send( "Wake up" )
         
     def timeout( self ):
-        self.log( 'Client: timeout: %s' % ( self.conn.address ))
         if self.conn is not None :
+            self.log( 'Client: timeout: %s:%d' % ( self.conn.address ))
             self.conn.send( 'Hello from Client: %d' % self.count )
             self.count += 1

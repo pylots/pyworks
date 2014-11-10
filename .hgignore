@@ -3,6 +3,8 @@ syntax: glob
 *.class
 log/*
 bin/
+db/coworks.db
 lib/
+share/
 include/
 .Python
