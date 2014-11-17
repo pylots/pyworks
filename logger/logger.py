@@ -14,7 +14,7 @@ class LoggerTask( Task ):
         self.logger.set_level( level )
 
     def dolog( self, task, level, msg ):
-        self.logger.log( task, level, msg )
+        self.logger.log( level, "(%s): %s" % ( task, msg ))
         if self._echo :
             print msg,
         
