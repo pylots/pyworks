@@ -2,6 +2,7 @@ import threading
 from pyworks import Task
 from web.views import app, init_db
 from wsgiref.simple_server import make_server
+from waitress import serve
 from web.ws import ws_server
 
 class WebServer( Task ):
@@ -12,8 +13,9 @@ class WebServer( Task ):
         app.config.update(dict(
                 COWORKS=self._manager
                 ))
-        httpd = make_server( '0.0.0.0', 5000, app )
-        httpd.serve_forever( )
+        # httpd = make_server( '0.0.0.0', 5000, app )
+        # httpd.serve_forever( )
+        serve( app, host='0.0.0.0', port=5000 )
 
 class TestTask( Task ):
     def init( self ):
