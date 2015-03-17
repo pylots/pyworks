@@ -2,6 +2,9 @@ Version 2.0
 [ ] Meta on object
 Every Task has a Meta object, which will receive all Messages first, should make it easier to do dynamically loggin, security and business logic
 
+Version 1.3
+[ ] Web server
+
 Version 1.2
 [v] Index on Tasks.
 Every Task will get an Index number, meaning that many Tasks off the same Task Class will have an unique id/index
