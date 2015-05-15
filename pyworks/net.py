@@ -154,12 +154,14 @@ class Connection :
                             pass
                         self.task.net_down( self, 2 )
                     self.task.net_down( self, 1 )
+                    time.sleep( 5 )
                 time.sleep( 5 )
         except:
             self.task.log( "Exception in run: %s" % sys.exc_info()[1])
             pass
         self.task.log( "closing socket" )
-        self.sock.close()
+        if self.sock :
+            self.sock.close()
         self.sock = None
         self.stop = False
         self.task.log( '%s stopped' % self )

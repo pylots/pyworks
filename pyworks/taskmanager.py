@@ -8,6 +8,7 @@ import sys, threading, time, os, traceback
 from pyworks import Future, NoFuture, syslog
 from .util import WARN, ERROR, DEBUG
 
+
 class Module( object ):
     def __init__( self, name, conf, factory, task=None, proxy=None, runner=None ):
         self.name, self.conf, self.factory, self.task, self.proxy, self.runner = name, conf, factory, task, proxy, runner
@@ -162,7 +163,10 @@ class Runner( Thread ) :
                     self.task._state.exception( m.name )
             except Empty :
                 if self.state == "Ready" :
-                    self.task._state.timeout( )
+                    try:
+                        self.task._state.timeout( )
+                    except:
+                        self.manager.log( self.task, "timeout %s failed: %s (%s)" % ( m.name, sys.exc_info( )[1], traceback.format_exc( ) ))
         self.state = "Stopped"
 
 
