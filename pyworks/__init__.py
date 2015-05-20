@@ -211,6 +211,9 @@ class Task :
         self._state = state( self )
         self._state.enter( )
         
+    def set_level( self, level ):
+        self._logger.set_level( level )
+        
     def debug( self, msg ):
         self._logger.log( DEBUG, msg )
 

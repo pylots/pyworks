@@ -18,7 +18,7 @@ class WebSocketsHandler(SocketServer.StreamRequestHandler):
         self.handshake_done = False
         self.wserver = None
         self.logger = Logger( name="ws", logfile="web" )
-        print "Logger is ", self.logger
+        # print "Logger is ", self.logger
         self.logger.log( WARN, "Ready...")
 
     def handle(self):
