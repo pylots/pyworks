@@ -167,6 +167,7 @@ class Runner( Thread ) :
                         self.task._state.timeout( )
                     except:
                         self.manager.log( self.task, "timeout %s failed: %s (%s)" % ( m.name, sys.exc_info( )[1], traceback.format_exc( ) ))
+                        self.task._state.exception( m.name )
         self.state = "Stopped"
 
 
