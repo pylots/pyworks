@@ -13,7 +13,7 @@ class Logger( object ):
     def __init__( self, name=None, logfile="logger" ):
         self.name = name
         self.logfile = logfile
-        self.level = INFO
+        self.level = DEBUG
         self._open_log( )
         self.month = datetime.now( ).strftime( "%m" )
         

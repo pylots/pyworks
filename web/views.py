@@ -17,7 +17,7 @@ login_manager.init_app(app)
 
 # Load default config and override config from an environment variable
 app.config.update(dict(
-    DATABASE=os.path.join( PRODIR, 'db', 'coworks.db' ),
+    DATABASE=os.path.join(PRODIR, 'db', 'coworks.db'),
     DEBUG=True,
     SECRET_KEY='development key',
     USERNAME='admin',
@@ -25,7 +25,7 @@ app.config.update(dict(
 ))
 app.config.from_envvar('COWORKS_SETTINGS', silent=True)
 
-class User( object ):
+class User(object):
     def __init__(self, *args, **kw):
         self.id = kw['id']
         self.name = kw['name']
@@ -42,7 +42,7 @@ class User( object ):
 
     @staticmethod
     def lookup(username):
-        for user in userlist :
+        for user in userlist:
             if user.name == username:
                 return user
         return None        
@@ -50,7 +50,7 @@ class User( object ):
     @staticmethod
     def validate(username, password):
         user = User.lookup(username)
-        if user and user.password == password :
+        if user and user.password == password:
             return user
         return None
             
@@ -70,11 +70,12 @@ class User( object ):
         return self.name
 
 userlist = [
-    User( id=0, name='admin',password='default', email='admin@coworks.dk', urole='admin', ulevel=0 ),
-    User( id=1, name='rene', password='rene', email='rene@coworks.dk', urole='admin', ulevel=0 ),
-    User( id=2, name='sammy', password='sammy', email='sammy@coworks.dk', urole='user', ulevel=3 )
+    User(id=0, name='admin',password='default', email='admin@coworks.dk', urole='admin', ulevel=0),
+    User(id=1, name='rene', password='rene', email='rene@coworks.dk', urole='admin', ulevel=0),
+    User(id=2, name='sammy', password='sammy', email='sammy@coworks.dk', urole='user', ulevel=3)
 ]
-    
+
+
 @login_manager.user_loader
 def load_user(userid):
     return User.get(userid)
@@ -122,7 +123,7 @@ def main():
     db = get_db()
     cur = db.execute('select title, text from entries order by id desc')
     entries = cur.fetchall()
-    return render_template('main.html', entries=entries )
+    return render_template('main.html', entries=entries)
 
 
 @app.route('/add', methods=['POST'])
@@ -131,14 +132,16 @@ def add_entry():
         abort(401)
     db = get_db()
     db.execute('insert into entries (title, text) values (?, ?)',
-                 [request.form['title'], request.form['text']])
+               [request.form['title'], request.form['text']])
     db.commit()
     flash('New entry was successfully posted')
     return redirect(url_for('show_entries'))
 
+
 @app.route('/users', methods=['GET', 'POST'])
 def users():
     return render_template('users.html', users=userlist)
+
 
 @app.route('/edit_user/<user>', methods=['GET', 'POST'])
 def edit_user(user):
@@ -150,7 +153,7 @@ def edit_user(user):
 def tasks():
     manager = app.config['COWORKS']
     tasks = []
-    for module in manager.get_modules( ):
+    for module in manager.get_modules():
         tasks.append(dict(
                 name=module.name,
                 mode=module.runner.state,
@@ -162,11 +165,12 @@ def tasks():
                 ))
     return render_template('tasks.html', tasks=tasks)
 
+
 @app.route('/show_task/<name>', methods=['GET'])
-def show_task( name ):
-    print 'task %s' % name
-    manager = app.config[ 'COWORKS' ]
-    module = manager.get_module( name )
+def show_task(name):
+    print ('task %s' % name)
+    manager = app.config['COWORKS']
+    module = manager.get_module(name)
     return render_template('show_task.html', module=module )
 
 
@@ -175,8 +179,8 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        user = User.validate( username, password )
-        if user :
+        user = User.validate(username, password)
+        if user:
             login_user(user)
             flash('You were logged in')
             return redirect(url_for('main'))
@@ -185,15 +189,16 @@ def login():
 
 @app.route('/logout')
 def logout():
-    logout_user( )
+    logout_user()
     flash('You were logged out')
     return redirect(url_for('main'))
+
 
 class RestTest(restful.Resource):
     def get(self):
         manager = app.config['COWORKS']
         tasks = {}
-        for module in manager.get_modules( ) :
+        for module in manager.get_modules():
             tasks[module.name] = module.task.__class__.__name__
         return tasks
 

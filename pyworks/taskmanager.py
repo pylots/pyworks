@@ -4,9 +4,9 @@ except ImportError:
     from Queue import Queue, Empty
         
 from threading import Thread
-import sys, threading, time, os, traceback
+import sys, time, os, traceback
 from pyworks import Future, NoFuture, syslog
-from .util import WARN, ERROR, DEBUG
+from .util import WARN, ERROR
 
 
 class Module( object ):
@@ -170,6 +170,19 @@ class Runner( Thread ) :
                         self.task._state.exception( m.name )
         self.state = "Stopped"
 
+class ManagerManager(object):
+    _manager = None
+    
+    @staticmethod
+    def get_manager():
+        return ManagerManager._manager
+    
+    @staticmethod
+    def set_manager(manager):
+        if ManagerManager._manager is not None :
+            print("manager already set to: %s" % self._manager)
+        ManagerManager._manager = manager
+        
 
 class Manager( object ):
     pid = 0
@@ -179,6 +192,7 @@ class Manager( object ):
         self.prio = 0
         self.name = "Manager"
         self.state = "Initial"
+        ManagerManager.set_manager(self)
         
     def log( self, task, msg ):
         if self.state != "Running" :
@@ -225,11 +239,17 @@ class Manager( object ):
         while prio < self.prio :
             for name, module in self.modules.items( ) :
                 if module.prio == prio :
-                    if os.access( 'conf/%s.py' % self.env, os.R_OK ):
-                        execfile( 'conf/%s.py' % self.env, { 'task' : module.task })
+                    filename = 'conf/%s.py' % self.env
+                    if os.access(filename, os.R_OK ):
+                        f = open(filename)
+                        code = compile(f.read(), filename, 'exec')
+                        exec(code, { 'task' : module.task })
+                        # execfile( 'conf/%s.py' % self.env, { 'task' : module.task })
                     if module.conf :
                         if os.access( module.conf, os.R_OK ):
-                            execfile( module.conf, { 'task' : module.task } )
+                            f = open(module.conf)
+                            code = compile(f.read(), module.conf, 'exec')
+                            exec(code, { 'task' : module.task })
                         else:
                             syslog( 'Warning: %s could not be read' % module.conf )
                     module.task.conf( )

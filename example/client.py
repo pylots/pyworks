@@ -36,8 +36,10 @@ class ClientTask( Task ) :
                 self.log ( "long answer 1 = %d" % future.get_value( 2 ))
             except FutureShock :
                 self.log( "Ahh, I gave up waiting for longwork, try a little longer" )
-                self.log ( "long answer 2 = %d" % future.get_value( 10 ))
-                self.log ( "long answer 3 = %d" % future.get_value( ))
+                try:
+                    self.log ( "long answer 2 = %d" % future.get_value( 10 ))
+                except FutureShock :
+                    self.log ( "long answer 3 = %d" % future.get_value( ))
 
         if self.ntimeout == 5 :
             return

@@ -2,14 +2,14 @@ import sys, time
 from socket import *
 from select import select
 from threading import Thread
-from Queue import Queue, Empty
+from queue import Queue, Empty
 
 from pyworks import Task
 
 class Protocol( object ):
     def swrite( self, sock, buffer ):
-        sock.send( buffer )
-        
+        sock.send( bytes(buffer, 'utf8' ))
+            
     def sread( self, sock ):
         return sock.recv( 4096 )
         
@@ -40,11 +40,11 @@ class FramedProtocol( Protocol ):
         
     def receive( self, sock ):
         n = 0
-        for line in self.sread( sock ):
+        for line in str(self.sread( sock ), 'utf8'):
             for c in line :
                 n += 1
                 if n > self.maxlen :
-                    print "Telegram too long"
+                    print ("Telegram too long")
                     yield self.buffer
                 if self.state == HUNT:
                     if c == self.start :
@@ -121,9 +121,11 @@ class Connection :
     def level3( self ):
         try:
             buf = self.q.get( False )
-            self.protocol.send( self.sock, buf )
+            self.protocol.send(self.sock, buf)
         except Empty :
             pass
+        except Exception as e :
+            self.task.log("Send exception: %s" % e)
         try :
             inputs = [ self.sock ]
             outputs = []

@@ -16,7 +16,7 @@ class LoggerTask( Task ):
     def dolog( self, task, level, msg ):
         self.logger.log( level, "(%s): %s" % ( task, msg ))
         if self._echo :
-            print msg,
+            print (msg)
         
     def log( self, level, msg ):
         self.dolog( self, level, msg )

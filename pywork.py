@@ -11,7 +11,7 @@ import settings
 from pyworks.taskmanager import Module, Manager
 from web.tasks import WebServer, SocketServer, TestTask
 
-from logger.logger import LoggerTask
+from pyworks.logger import LoggerTask
 
 sys_tasks = { 
     "ux" : Module( "ux", "./web/web.conf", WebServer ),
@@ -31,7 +31,10 @@ class Tasks :
 
 def user_tasks( manager, conffile ):
     c = Tasks( )
-    execfile( conffile, { 'conf' : c } )
+    # execfile( conffile, { 'conf' : c } )
+    f = open(conffile)
+    code = compile(f.read(), conffile, 'exec')
+    exec(code, { 'conf' : c })
     return c.list
 
 if __name__ == "__main__" :
@@ -49,7 +52,7 @@ if __name__ == "__main__" :
     running = True
     while running :
         try:
-            line = raw_input( prompt )
+            line = input( prompt )
         except KeyboardInterrupt :
             os._exit( 0 )            
         if len( line ) == 0 :
@@ -64,7 +67,7 @@ if __name__ == "__main__" :
             exec( line )
             prompt = ">>"
         except:
-            print "%s" % sys.exc_info( )[1]
+            print ("%s" % sys.exc_info( )[1])
             prompt = "?>>"
 
     m.closeModules( )

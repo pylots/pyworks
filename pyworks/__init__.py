@@ -1,7 +1,7 @@
 from threading import Lock
 import threading
 from datetime import datetime
-from Queue import Queue, Empty
+from queue import Queue, Empty
 
 from .util import Logger, DEBUG, INFO, WARN, ERROR
 
@@ -249,4 +249,7 @@ class Task :
 
     def exception( self, method ):
         pass
+        
+    def not_implemented(self, name):
+        self.error("Not implemented: %s" % name)
         
