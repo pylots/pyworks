@@ -168,10 +168,10 @@ def tasks():
 
 @app.route('/show_task/<name>', methods=['GET'])
 def show_task(name):
-    print ('task %s' % name)
+    print('task %s' % name)
     manager = app.config['COWORKS']
     module = manager.get_module(name)
-    return render_template('show_task.html', module=module )
+    return render_template('show_task.html', module=module)
 
 
 @app.route('/login', methods=['GET', 'POST'])
