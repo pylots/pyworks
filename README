@@ -7,10 +7,14 @@ it was much easier to comprehend the one Task == one thread concept.
 No synchronized keyword, only place you had to take a little care was if you
 used shared memory (which was rare)
 
-  The other evening I decided to try to implement my version of what is also
-known as the Actor pattern. Inspired by Donovan Preston's (@donovanpreston)
-talk at Pycon 2010 about his implementation of Actor's in Python I decided
-to roll my own.
+  In 2004 we therefore inplemented Coworks in Java, a concurrent object model
+for Java. Also known as the Actor pattern. Since then we have implemented many
+larger projects all over the world. The concept is easy for developers to
+understand and generally performs very well.
+
+  The other evening I decided to try to implement my version of Coworks in
+Python. Inspired by Donovan Preston's (@donovanpreston) talk at Pycon 2010
+about his implementation of Actor's in Python I decided to try my self.
 
   It is a simple as it gets. Subclasses of Task run in their own thread.
 Task's can access each other by calling get_service( "OtherTask" ) to get 
