@@ -5,7 +5,7 @@ from time import time
 class RingTask(Task) :
     """
     Send messages to next Task in Ring
-    """        
+    """
     def init(self):
         self.count = 1
         self.n = self.get_index() + 1
@@ -24,11 +24,11 @@ class RingTask(Task) :
         self.nmsg = nmsg
 
     def ringop(self, name, n):
-        if n % 10001 == 0:
+        if n % 10000 == 0:
             self.log("%s: from %s n=%d" % (self.get_name(), name, n))
-        if n < 1000000:
+        if n < 100000:
             self.next.ringop(self.get_name(), n + 1)
-        if n == 1000000:
+        if n >= 100000:
             self.log("Done: %d secs" % (time() - self.start))
 
     def timeout(self):

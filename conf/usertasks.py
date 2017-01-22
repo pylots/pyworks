@@ -1,20 +1,20 @@
 from example.worker import WorkerTask
-conf.addTask( "worker", WorkerTask )
+# conf.addTask( "worker", WorkerTask )
 
 from example.client import ClientTask
 
-conf.addTask( "client1", ClientTask, conf="example/conf/client.py" )
-conf.addTask( "client2", ClientTask, conf="example/conf/client.py" )
-conf.addTask( "client3", ClientTask, conf="example/conf/client.py" )
+# conf.addTask( "client1", ClientTask, conf="example/conf/client.py" )
+# conf.addTask( "client2", ClientTask, conf="example/conf/client.py" )
+# conf.addTask( "client3", ClientTask, conf="example/conf/client.py" )
 
 from example.statetask import StateTask
-conf.addTask( "stateclient", StateTask )
+# conf.addTask( "stateclient", StateTask )
 
 from example.netserver import EchoServerTask
-conf.addTask( "netserver", EchoServerTask )
+# conf.addTask( "netserver", EchoServerTask )
 
 from example.netclient import EchoClientTask
-conf.addTask( "netclient", EchoClientTask )
+# conf.addTask( "netclient", EchoClientTask )
 
 from example.ring import RingTask
 for r in range( 100 ):

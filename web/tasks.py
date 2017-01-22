@@ -42,7 +42,7 @@ class WsHandler(WebSocket):
         self.ws.add_client(self)
 
     def handleClose(self):
-        print("handleClose")
+        self.ws.del_client(self)
 
     def handleMessage(self):
         self.ws.message(self.data)

@@ -15,7 +15,7 @@ import hashlib
 import base64
 import socket
 import struct
-import ssl
+#import ssl
 import errno
 import codecs
 from collections import deque
@@ -668,12 +668,13 @@ class WebSocketServer(object):
 class SSLWebSocketServer(WebSocketServer):
 
    def __init__(self, host, port, websocketclass, certfile,
-                keyfile, version = ssl.PROTOCOL_TLSv1, selectInterval = 0.1):
+                keyfile, version = 1, selectInterval = 0.1):
+#                keyfile, version = ssl.PROTOCOL_TLSv1, selectInterval = 0.1):
 
       WebSocketServer.__init__(self, host, port,
                                         websocketclass, selectInterval)
 
-      self.context = ssl.SSLContext(version)
+      self.context = None  #ssl.SSLContext(version)
       self.context.load_cert_chain(certfile, keyfile)
 
    def close(self):

@@ -8,6 +8,8 @@
 import os
 import sys
 
+import settings
+
 from pyworks.taskmanager import Module, Manager
 from web.tasks import WebServer, SocketServer, TestTask
 
@@ -21,7 +23,7 @@ sys_tasks = {
 }
 
 
-class Tasks :
+class Tasks(object):
     def __init__(self):
         self.list = {}
 
@@ -29,6 +31,7 @@ class Tasks :
         self.list[name] = Module(name, conf, factory)
         if index:  # Overwriting default index/pid
             self.list[name].index = index
+
 
 def user_tasks(manager, conffile):
     c = Tasks()
