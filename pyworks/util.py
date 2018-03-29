@@ -1,47 +1,22 @@
-from datetime import datetime
+import os
 
-LOGDIR = "log"
-
-ERROR = 0
-WARN = 1
-INFO = 2
-DEBUG = 3
-
-levels = ['ERROR', 'WARN', 'INFO', 'DEBUG']
+from .core import pyworks_settings
 
 
-class Logger(object):
+class Settings(object):
+    prodir = None
 
-    def __init__(self, name=None, logfile="logger"):
-        self.name = name
-        self.logfile = logfile
-        self.level = DEBUG
-        self._open_log()
-        self.month = datetime.now().strftime("%m")
+    def __getattr__(self, item):
+        if item == 'PRODIR':
+            if not self.prodir:
+                self.prodir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+            return self.prodir
+        if item in pyworks_settings:
+            var = pyworks_settings[item]
+            if isinstance(var, tuple):
+                return var[0]
+            return pyworks_settings[item]
+        return None
 
-    def _open_log(self):
-        self._log = open(
-            "log/%s-%s" % (datetime.now().strftime("%m"), self.logfile), "a"
-        )
-        self._log.write("***init***: %s\n" % self.name)
-        self._log.flush()
 
-    def set_level(self, level):
-        self.level = level
-
-    def log(self, level, text):
-        if (level > self.level):
-            return
-
-        if self.month != datetime.now().strftime("%m"):
-            self._log.write("*** Closing month %s ***" % self.month)
-            self.close()
-            self._open_log()
-        msg = "%s %s [%s] %s\n" % (
-            datetime.now().strftime("%y%m%d:%H%M%S"), levels[level], self.name, text
-        )
-        self._log.write(msg)
-        self._log.flush()
-
-    def close(self):
-        self._log.close()
+settings = Settings()

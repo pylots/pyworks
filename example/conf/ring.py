@@ -1,2 +1,2 @@
-task.setCount( 100 )
-task.setMessages( 1000000 )
+actor.setCount( 100 )
+actor.setMessages( 1000000 )

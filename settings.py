@@ -1,5 +1,11 @@
-import sys
 import os
 
+from pyworks.core import actor, subsys
+
 PRODIR = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(PRODIR, 'libs'))
+
+INSTALLED_ACTORS = [
+    subsys('web'),
+    subsys('example')
+]
+

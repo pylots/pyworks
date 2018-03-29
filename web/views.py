@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
-
 import os
 from sqlite3 import dbapi2 as sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash
 from flask.ext import restful
+from pyworks.util import settings
 
 from flask_login import LoginManager, login_user, logout_user, UserMixin, current_user
-
-from settings import PRODIR
 
 # create our little application :)
 app = Flask(__name__)
@@ -16,16 +14,12 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 # Load default config and override config from an environment variable
-app.config.update(
-    dict(
-        DATABASE=os.path.join(PRODIR, 'db', 'pyworks.db'),
-        DEBUG=True,
-        SECRET_KEY='development key',
-        USERNAME='admin',
-        PASSWORD='default',
-    )
-)
-app.config.from_envvar('PYWORKS_SETTINGS', silent=True)
+app.config.update(dict(
+    DATABASE=os.path.join(settings.PRODIR, 'db', 'pyworks.db'),
+    DEBUG=True,
+    SECRET_KEY="IWKbfXW2UdK/WFVvmMQ96fKtKwFNs0WqDmYyyC3Wm0y5x7SKOCkcXYdF7aWqX51"
+))
+# app.config.from_envvar('PYWORKS_SETTINGS', silent=True)
 
 
 class User(object):
@@ -109,7 +103,6 @@ userlist = [
 def load_user(userid):
     return User.get(userid)
 
-
 def connect_db():
     """Connects to the specific database."""
     rv = sqlite3.connect(app.config['DATABASE'])
@@ -135,12 +128,12 @@ def get_db():
     return g.sqlite_db
 
 
+
 @app.teardown_appcontext
 def close_db(error):
     """Closes the database again at the end of the request."""
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
-
 
 @app.context_processor
 def inject_user():
@@ -180,31 +173,31 @@ def edit_user(user):
     return render_template('edit_user.html', user=u)
 
 
-@app.route('/tasks', methods=['GET', 'POST'])
-def tasks():
+@app.route('/actors', methods=['GET', 'POST'])
+def actors():
     manager = app.config['PYWORKS']
-    tasks = []
+    actors = []
     for module in manager.get_modules():
-        tasks.append(
+        actors.append(
             dict(
                 name=module.name,
                 mode=module.runner.state,
                 qsize=module.runner.queue.qsize(),
                 prio=module.prio,
                 index=module.index,
-                state=module.task._state.__class__.__name__,
+                state=module.actor._state.__class__.__name__,
                 pid=module.pid,
             )
         )
-    return render_template('tasks.html', tasks=tasks)
+    return render_template('actors.html', actors=actors)
 
 
-@app.route('/show_task/<name>', methods=['GET'])
-def show_task(name):
-    print('task %s' % name)
+@app.route('/show_actor/<name>', methods=['GET'])
+def show_actor(name):
+    print('actor %s' % name)
     manager = app.config['PYWORKS']
     module = manager.get_module(name)
-    return render_template('show_task.html', module=module)
+    return render_template('show_actor.html', module=module)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -232,14 +225,10 @@ class RestTest(restful.Resource):
 
     def get(self):
         manager = app.config['PYWORKS']
-        tasks = {}
+        actors = {}
         for module in manager.get_modules():
-            tasks[module.name] = module.task.__class__.__name__
-        return tasks
+            actors[module.name] = module.actor.__class__.__name__
+        return actors
 
 
-api.add_resource(RestTest, '/api/tasks')
-
-if __name__ == '__main__':
-    init_db()
-    app.run()
+api.add_resource(RestTest, '/api/actors')

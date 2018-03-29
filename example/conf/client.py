@@ -1,4 +1,4 @@
-task.log( "in client conf: %s" % task.get_name( ))
-if task.get_name( ) == "client2" :
-    task.set_timeout(1)
+actor.log( "in client conf: %s" % actor.get_name( ))
+if actor.get_name( ) == "client2" :
+    actor.set_timeout(1)
     

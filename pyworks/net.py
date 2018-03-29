@@ -95,8 +95,8 @@ class STXETXProtocol(FramedProtocol):
 
 class Connection(object):
 
-    def __init__(self, task, address, protocol=Protocol, connections=1):
-        self.task = task
+    def __init__(self, actor, address, protocol=Protocol, connections=1):
+        self.actor = actor
         self.address = address
         self.connections = connections
         self.q = Queue()
@@ -133,49 +133,49 @@ class Connection(object):
         except Empty:
             pass
         except Exception as e:
-            self.task.log("Send exception: %s" % e)
+            self.actor.log("Send exception: %s" % e)
         try:
             inputs = [self.sock]
             # self.sock.setblocking(0) # Jython compatibility
             inp, outp, x = select(inputs, [], [], 0.1)
             if not inp:
                 if self.protocol.timeout(self):
-                    self.task.net_timeout(self)
+                    self.actor.net_timeout(self)
                 return True
 
             for telegram in self.protocol.receive(self.sock):
-                self.task.net_received(self, telegram)
+                self.actor.net_received(self, telegram)
         except:
-            self.task.log("Exception in socket.recv: %s" % sys.exc_info()[1])
+            self.actor.log("Exception in socket.recv: %s" % sys.exc_info()[1])
             return False
 
         return True
 
     def run(self):
         try:
-            self.task.log('%s running' % self)
+            self.actor.log('%s running' % self)
             while self.stop is False:
                 while self.level1() and self.stop is False:
-                    self.task.log("Level 1")
-                    self.task.net_up(self, 1)
+                    self.actor.log("Level 1")
+                    self.actor.net_up(self, 1)
                     while self.level2() and self.stop is False:
-                        self.task.log("Level 2")
-                        self.task.net_up(self, 2)
+                        self.actor.log("Level 2")
+                        self.actor.net_up(self, 2)
                         while self.level3() and self.stop is False:
                             pass
-                        self.task.net_down(self, 2)
-                    self.task.net_down(self, 1)
+                        self.actor.net_down(self, 2)
+                    self.actor.net_down(self, 1)
                     time.sleep(5)
                 time.sleep(5)
         except:
-            self.task.log("Exception in run: %s" % sys.exc_info()[1])
+            self.actor.log("Exception in run: %s" % sys.exc_info()[1])
             pass
-        self.task.log("closing socket")
+        self.actor.log("closing socket")
         if self.sock:
             self.sock.close()
         self.sock = None
         self.stop = False
-        self.task.log('%s stopped' % self)
+        self.actor.log('%s stopped' % self)
 
 
 class ServerConnection(Connection):
@@ -186,9 +186,9 @@ class ServerConnection(Connection):
             self.serversocket.bind((self.address))
             self.serversocket.listen(1)
             host, port = self.serversocket.getsockname()
-            self.task.net_ready((host, port))
+            self.actor.net_ready((host, port))
         except:
-            self.task.log("ServerConnection Exception: %s" % sys.exc_info()[1])
+            self.actor.log("ServerConnection Exception: %s" % sys.exc_info()[1])
             return False
 
         return True
@@ -197,7 +197,7 @@ class ServerConnection(Connection):
         try:
             (self.sock, address) = self.serversocket.accept()
         except:
-            self.task.log('Exception in accept: %s' % sys.exc_info()[1])
+            self.actor.log('Exception in accept: %s' % sys.exc_info()[1])
             return False
 
         return True
@@ -210,7 +210,7 @@ class ClientConnection(Connection):
             self.sock = socket(AF_INET, SOCK_STREAM)
             self.sock.connect((self.address))
         except:
-            self.task.log("ClientConnect Exception: %s" % sys.exc_info()[1])
+            self.actor.log("ClientConnect Exception: %s" % sys.exc_info()[1])
             return False
 
         return True

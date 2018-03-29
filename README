@@ -23,7 +23,7 @@ is sent on a Queue and executed in the other Actor's thread.
 
   If you need a return value you can use the Future patten.
 
-  Every task can listen on other Actor's via the self.observe("SomeActor")
+  Every Actor can listen on other Actor's via the self.observe("SomeActor")
 method. A listener must implement all Output methods of the Actor being
 listened on.
 

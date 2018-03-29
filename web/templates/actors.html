@@ -1,0 +1,20 @@
+{% extends "base.html" %}  
+{% block body %}
+<h2>Actors</h2>
+<table class="table table-bordered table-hover" id="actors">
+  <caption>Actors</caption>
+  <thead>
+    <tr>
+      <th>Name</th><th>Mode</th><th>Qsize</th><th>Prio</th><th>Index</th><th>Pid</th><th>State</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for actor in actors %}
+    <tr>
+      <td><a href="{{url_for( 'show_actor', name=actor.name
+	)}}">{{actor.name}}</a></td><td>{{actor.mode}}</td><td>{{actor.qsize}}</th><td>{{actor.prio}}</td><td>{{actor.index}}</td><td>{{actor.pid}}</td><td>{{actor.state}}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

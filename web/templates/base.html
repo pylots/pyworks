@@ -62,9 +62,9 @@
               </button>
               <a class="brand" href="{{ url_for( 'main' ) }}">pyworks</a>
               <div class="nav-collapse collapse">
-	      {% if user.is_authenticated() %}
+	      {% if user.is_authenticated %}
                 <ul class="nav">
-                  <li class="active"><a href="{{ url_for('tasks') }}">Actors</a></li>
+                  <li class="active"><a href="{{ url_for('actors') }}">Actors</a></li>
                   <li><a href="#logging">Logging</a></li>
 		  <li><a href="#">Alarms<span class="badge badge-important" id="alarms">0</span></a></li>
 		  <li><a href="#contact">Contact</a></li>
@@ -84,7 +84,7 @@
 		  <li><a href="#"><div id="message"></div></a></li>
                 </ul>
 		{% endif %}
-                {% if user.is_authenticated() %}
+                {% if user.is_authenticated %}
                     <ul class="nav pull-right">
 		      <li><a href="#"><span class="badge badge-default" id="ServerStatus">Not connected</span></a></li>
                         <li class="dropdown">

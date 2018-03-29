@@ -7,14 +7,14 @@ Version 1.3
 [ ] New bootstrap version
 
 Version 1.2
-[v] Index on Tasks.
+[v] Index on Actors.
 Every Actor will get an Index number, meaning that many Tasks off the same Actor Class will have an unique id/index
 Made for the Ring test
 
 Version 1.1
 [v] Implicit Future return from all methods
 Every return value implements __int__, __float__, __string__, which return the returned Future
-x = task.add( 2, 2 )
+x = actor.add( 2, 2 )
 # Do some stuff...
 print "result = %d" % x # Will wait here in get_value()
 

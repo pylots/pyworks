@@ -1,6 +1,6 @@
-from pyworks import Actor, FutureShock, Filter, Future
-
 from time import time
+
+from pyworks import Actor, FutureShock, Filter, Future
 
 
 class ClientActor(Actor) :
@@ -54,4 +54,4 @@ class ClientActor(Actor) :
         self.closed()
 
     def worker_done(self, msg):
-        self.log("The worker task is done: %s" % msg)
+        self.log("The worker Actor is done: %s" % msg)

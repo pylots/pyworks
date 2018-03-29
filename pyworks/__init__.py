@@ -1,9 +1,8 @@
+import logging
 from threading import Lock
 import threading
 from datetime import datetime
 from queue import Queue, Empty
-
-from .util import Logger, DEBUG, INFO, WARN, ERROR
 
 
 class FutureShock(Exception):
@@ -19,30 +18,8 @@ class NoFuture(object):
         return None
 
 
-lock = Lock()
-_syslog_file = open("log/syslog", "a")
-
-
-def syslog(msg):
-    lock.acquire()
-    try:
-        _syslog_file.write(
-            "%s: [%s] %s\n" %
-            (datetime.now().strftime("%H%M%S"), threading.current_thread(), msg)
-        )
-        _syslog_file.flush()
-    finally:
-        lock.release()
-
-
-syslog("***Ready***")
-
-debug_flag = False
-
-
-def debug(msg):
-    if debug_flag:
-        syslog(msg)
+logger = logging.getLogger('pyworks')
+logger.setLevel(logging.DEBUG)
 
 
 class Future(object):
@@ -62,7 +39,7 @@ class Future(object):
 
     def set_value(self, value):
         if self.has_value:
-            syslog("Trying to set_value more than once")
+            logger.warning("Trying to set_value more than once")
         self.queue.put(value)
 
     def get_value(self, timeout=Ellipsis):
@@ -97,8 +74,8 @@ class Future(object):
 
 class State:
 
-    def __init__(self, task):
-        self.task = task
+    def __init__(self, actor):
+        self.actor = actor
 
     def __str__(self):
         return self
@@ -110,12 +87,12 @@ class State:
         pass
 
     def set_state(self, state):
-        self.task._state.leave()
-        self.task._state = state(self.task)
-        self.task._state.enter()
+        self.actor._state.leave()
+        self.actor._state = state(self.actor)
+        self.actor._state.enter()
 
     def log(self, msg):
-        self.task.log(msg)
+        self.actor.log(msg)
 
     def start(self):
         pass
@@ -132,8 +109,8 @@ class State:
 
 class Filter:
 
-    def __init__(self, task=None):
-        self.task = task
+    def __init__(self, actor=None):
+        self.actor = actor
 
     def filter(self, method, *args, **kwds):
         return True
@@ -204,10 +181,13 @@ class Actor:
         self._state = self
         self._dispatch = None
         self._timeout = 2
-        self._logger = Logger(self.get_name())
+        self._logger = logger
 
     def notify(self):
         return self._dispatch
+
+    def log(self, msg, *args, **kwargs):
+        self._logger.info(msg, *args, **kwargs)
 
     def set_timeout(self, t):
         self._timeout = t
@@ -215,7 +195,7 @@ class Actor:
     def get_module(self):
         return self._manager.modules[self._module.name]
 
-    def get_listeners(self):
+    def get_observers(self):
         return self.get_module().listeners.values()
 
     def get_queue(self):
@@ -243,24 +223,9 @@ class Actor:
         self._state = state(self)
         self._state.enter()
 
-    def set_level(self, level):
-        self._logger.set_level(level)
-
-    def debug(self, msg):
-        self._logger.log(DEBUG, msg)
-
-    def warn(self, msg):
-        self._logger.log(WARN, msg)
-
-    def log(self, msg):
-        self._logger.log(INFO, msg)
-
-    def error(self, msg):
-        self._logger.log(ERROR, msg)
-
     def observe(self, name, filter=Filter()):
         self._manager.modules[name].listeners[self._name] = {
-            'task': self, 'filter': filter
+            'actor': self, 'filter': filter
         }
 
     def closed(self):
