@@ -1,10 +1,10 @@
-from pyworks.net import NetTask, ServerConnection, AsciiProtocol, STXETXProtocol
+from pyworks.net import NetActor, ServerConnection, AsciiProtocol, STXETXProtocol
 
 
-class EchoServerTask(NetTask):
+class EchoServerTask(NetActor):
     def init(self):
         address = ('localhost', 8080)
-        self.conn = ServerConnection(self.get_service(), address, protocol=AsciiProtocol)
+        self.conn = ServerConnection(self.actor(), address, protocol=AsciiProtocol)
         self.count = 1
 
     def conf(self):
@@ -12,7 +12,7 @@ class EchoServerTask(NetTask):
 
     def net_ready(self, address):
         self.log('Net is ready....%s:%d' % address)
-        self.dispatch().server_ready(address)
+        self.notify().server_ready(address)
 
     def net_up(self, conn, level):
         self.log('Server up %d, %s' % (level, conn.address))

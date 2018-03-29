@@ -105,7 +105,7 @@ class WebSocket(object):
       self.maxheader = MAXHEADER
       self.maxpayload = MAXPAYLOAD
 
-   def handleMessage(self):
+   def handle_message(self):
       """
           Called when websocket frame is received.
           To access the frame data call self.data.
@@ -115,19 +115,19 @@ class WebSocket(object):
       """
       pass
 
-   def handleConnected(self):
+   def handle_connected(self):
       """
           Called when a websocket client connects to the server.
       """
       pass
 
-   def handleClose(self):
+   def handle_close(self):
       """
           Called when a websocket server gets a Close frame from a client.
       """
       pass
 
-   def _handlePacket(self):
+   def _handle_packet(self):
       if self.opcode == CLOSE:
          pass
       elif self.opcode == STREAM:
@@ -210,7 +210,7 @@ class WebSocket(object):
                   self.frag_buffer.extend(self.data)
                   self.data = self.frag_buffer
 
-              self.handleMessage()
+              self.handle_message()
 
               self.frag_decoder.reset()
               self.frag_type = BINARY
@@ -218,7 +218,7 @@ class WebSocket(object):
               self.frag_buffer = None
 
           elif self.opcode == PING:
-              self._sendMessage(False, PONG, self.data)
+              self._send_message(False, PONG, self.data)
 
           elif self.opcode == PONG:
               pass
@@ -233,10 +233,10 @@ class WebSocket(object):
                   except Exception as exp:
                       raise Exception('invalid utf-8 payload')
 
-              self.handleMessage()
+              self.handle_message()
 
 
-   def _handleData(self):
+   def _handle_data(self):
       # do the HTTP header and handshake
       if self.handshaked is False:
 
@@ -263,7 +263,7 @@ class WebSocket(object):
                   hStr = HANDSHAKE_STR % {'acceptstr': k_s}
                   self.sendq.append((BINARY, hStr.encode('ascii')))
                   self.handshaked = True
-                  self.handleConnected()
+                  self.handle_connected()
                except Exception as e:
                   raise Exception('handshake failed: %s', str(e))
 
@@ -275,10 +275,10 @@ class WebSocket(object):
 
          if VER >= 3:
              for d in data:
-                 self._parseMessage(d)
+                 self._parse_message(d)
          else:
              for d in data:
-                 self._parseMessage(ord(d))
+                 self._parse_message(ord(d))
 
    def close(self, status = 1000, reason = u''):
        """
@@ -297,13 +297,13 @@ class WebSocket(object):
             else:
                 close_msg.extend(reason)
 
-            self._sendMessage(False, CLOSE, close_msg)
+            self._send_message(False, CLOSE, close_msg)
 
        finally:
             self.closed = True
 
 
-   def _sendBuffer(self, buff):
+   def _send_buffer(self, buff):
       size = len(buff)
       tosend = size
       already_sent = 0
@@ -327,7 +327,7 @@ class WebSocket(object):
 
       return None
 
-   def sendFragmentStart(self, data):
+   def send_fragment_start(self, data):
       """
           Send the start of a data fragment stream to a websocket client.
           Subsequent data should be sent using sendFragment().
@@ -339,27 +339,27 @@ class WebSocket(object):
       opcode = BINARY
       if _check_unicode(data):
          opcode = TEXT
-      self._sendMessage(True, opcode, data)
+      self._send_message(True, opcode, data)
 
-   def sendFragment(self, data):
+   def send_fragment(self, data):
       """
           see sendFragmentStart()
 
           If data is a unicode object then the frame is sent as Text.
           If the data is a bytearray object then the frame is sent as Binary.
       """
-      self._sendMessage(True, STREAM, data)
+      self._send_message(True, STREAM, data)
 
-   def sendFragmentEnd(self, data):
+   def send_fragment_end(self, data):
       """
           see sendFragmentEnd()
 
           If data is a unicode object then the frame is sent as Text.
           If the data is a bytearray object then the frame is sent as Binary.
       """
-      self._sendMessage(False, STREAM, data)
+      self._send_message(False, STREAM, data)
 
-   def sendMessage(self, data):
+   def send_message(self, data):
       """
           Send websocket data frame to the client.
 
@@ -369,10 +369,10 @@ class WebSocket(object):
       opcode = BINARY
       if _check_unicode(data):
          opcode = TEXT
-      self._sendMessage(False, opcode, data)
+      self._send_message(False, opcode, data)
 
 
-   def _sendMessage(self, fin, opcode, data):
+   def _send_message(self, fin, opcode, data):
 
         payload = bytearray()
 
@@ -408,7 +408,7 @@ class WebSocket(object):
         self.sendq.append((opcode, payload))
 
 
-   def _parseMessage(self, byte):
+   def _parse_message(self, byte):
       # read in the header
       if self.state == HEADERB1:
 
@@ -448,7 +448,7 @@ class WebSocket(object):
                # if there is no mask and no payload we are done
                if self.length <= 0:
                   try:
-                     self._handlePacket()
+                     self._handle_packet()
                   finally:
                      self.state = self.HEADERB1
                      self.data = bytearray()
@@ -484,7 +484,7 @@ class WebSocket(object):
                # if there is no mask and no payload we are done
                if self.length <= 0:
                   try:
-                     self._handlePacket()
+                     self._handle_packet()
                   finally:
                      self.state = HEADERB1
                      self.data = bytearray()
@@ -512,7 +512,7 @@ class WebSocket(object):
                # if there is no mask and no payload we are done
                if self.length <= 0:
                   try:
-                     self._handlePacket()
+                     self._handle_packet()
                   finally:
                      self.state = HEADERB1
                      self.data = bytearray()
@@ -534,7 +534,7 @@ class WebSocket(object):
             # if there is no mask and no payload we are done
             if self.length <= 0:
                try:
-                  self._handlePacket()
+                  self._handle_packet()
                finally:
                   self.state = HEADERB1
                   self.data = bytearray()
@@ -559,7 +559,7 @@ class WebSocket(object):
          # check if we have processed length bytes; if so we are done
          if (self.index+1) == self.length:
             try:
-               self._handlePacket()
+               self._handle_packet()
             finally:
                #self.index = 0
                self.state = HEADERB1
@@ -590,8 +590,7 @@ class WebSocketServer(object):
 
       for desc, conn in self.connections.items():
          conn.close()
-         conn.handleClose()
-
+         conn.handle_close()
 
    def serveforever(self):
       while True:
@@ -613,7 +612,7 @@ class WebSocketServer(object):
             try:
                while client.sendq:
                   opcode, payload = client.sendq.popleft()
-                  remaining = client._sendBuffer(payload)
+                  remaining = client._send_buffer(payload)
                   if remaining is not None:
                       client.sendq.appendleft((opcode, remaining))
                       break
@@ -623,7 +622,7 @@ class WebSocketServer(object):
 
             except Exception as n:
                client.client.close()
-               client.handleClose()
+               client.handle_close()
                del self.connections[ready]
                self.listeners.remove(ready)
 
@@ -644,10 +643,10 @@ class WebSocketServer(object):
                    continue
                client = self.connections[ready]
                try:
-                  client._handleData()
+                  client._handle_data()
                except Exception as n:
                   client.client.close()
-                  client.handleClose()
+                  client.handle_close()
                   del self.connections[ready]
                   self.listeners.remove(ready)
 
@@ -660,7 +659,7 @@ class WebSocketServer(object):
                   continue
                client = self.connections[failed]
                client.client.close()
-               client.handleClose()
+               client.handle_close()
                del self.connections[failed]
                self.listeners.remove(failed)
 

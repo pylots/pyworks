@@ -16,16 +16,20 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 # Load default config and override config from an environment variable
-app.config.update(dict(
-    DATABASE=os.path.join(PRODIR, 'db', 'coworks.db'),
-    DEBUG=True,
-    SECRET_KEY='development key',
-    USERNAME='admin',
-    PASSWORD='default'
-))
-app.config.from_envvar('COWORKS_SETTINGS', silent=True)
+app.config.update(
+    dict(
+        DATABASE=os.path.join(PRODIR, 'db', 'pyworks.db'),
+        DEBUG=True,
+        SECRET_KEY='development key',
+        USERNAME='admin',
+        PASSWORD='default',
+    )
+)
+app.config.from_envvar('PYWORKS_SETTINGS', silent=True)
+
 
 class User(object):
+
     def __init__(self, *args, **kw):
         self.id = kw['id']
         self.name = kw['name']
@@ -38,6 +42,7 @@ class User(object):
     def get(userid):
         if userid < len(userlist):
             return userlist[int(userid)]
+
         return None
 
     @staticmethod
@@ -45,15 +50,17 @@ class User(object):
         for user in userlist:
             if user.name == username:
                 return user
-        return None        
+
+        return None
 
     @staticmethod
     def validate(username, password):
         user = User.lookup(username)
         if user and user.password == password:
             return user
+
         return None
-            
+
     def is_authenticated(self):
         return True
 
@@ -69,10 +76,32 @@ class User(object):
     def username(self):
         return self.name
 
+
 userlist = [
-    User(id=0, name='admin',password='default', email='admin@coworks.dk', urole='admin', ulevel=0),
-    User(id=1, name='rene', password='rene', email='rene@coworks.dk', urole='admin', ulevel=0),
-    User(id=2, name='sammy', password='sammy', email='sammy@coworks.dk', urole='user', ulevel=3)
+    User(
+        id=0,
+        name='admin',
+        password='default',
+        email='admin@pyworks.io',
+        urole='admin',
+        ulevel=0,
+    ),
+    User(
+        id=1,
+        name='rene',
+        password='rene',
+        email='rene@pyworks.io',
+        urole='admin',
+        ulevel=0,
+    ),
+    User(
+        id=2,
+        name='sammy',
+        password='sammy',
+        email='sammy@pyworks.io',
+        urole='user',
+        ulevel=3,
+    ),
 ]
 
 
@@ -131,8 +160,10 @@ def add_entry():
     if not session.get('logged_in'):
         abort(401)
     db = get_db()
-    db.execute('insert into entries (title, text) values (?, ?)',
-               [request.form['title'], request.form['text']])
+    db.execute(
+        'insert into entries (title, text) values (?, ?)',
+        [request.form['title'], request.form['text']],
+    )
     db.commit()
     flash('New entry was successfully posted')
     return redirect(url_for('show_entries'))
@@ -151,25 +182,27 @@ def edit_user(user):
 
 @app.route('/tasks', methods=['GET', 'POST'])
 def tasks():
-    manager = app.config['COWORKS']
+    manager = app.config['PYWORKS']
     tasks = []
     for module in manager.get_modules():
-        tasks.append(dict(
+        tasks.append(
+            dict(
                 name=module.name,
                 mode=module.runner.state,
                 qsize=module.runner.queue.qsize(),
                 prio=module.prio,
                 index=module.index,
                 state=module.task._state.__class__.__name__,
-                pid=module.pid
-                ))
+                pid=module.pid,
+            )
+        )
     return render_template('tasks.html', tasks=tasks)
 
 
 @app.route('/show_task/<name>', methods=['GET'])
 def show_task(name):
     print('task %s' % name)
-    manager = app.config['COWORKS']
+    manager = app.config['PYWORKS']
     module = manager.get_module(name)
     return render_template('show_task.html', module=module)
 
@@ -184,6 +217,7 @@ def login():
             login_user(user)
             flash('You were logged in')
             return redirect(url_for('main'))
+
     return render_template('login.html')
 
 
@@ -195,12 +229,14 @@ def logout():
 
 
 class RestTest(restful.Resource):
+
     def get(self):
-        manager = app.config['COWORKS']
+        manager = app.config['PYWORKS']
         tasks = {}
         for module in manager.get_modules():
             tasks[module.name] = module.task.__class__.__name__
         return tasks
+
 
 api.add_resource(RestTest, '/api/tasks')
 

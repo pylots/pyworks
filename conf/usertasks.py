@@ -1,14 +1,14 @@
-from example.worker import WorkerTask
-# conf.addTask( "worker", WorkerTask )
+from example.worker import WorkerActor
+# conf.addTask( "worker", WorkerActor )
 
-from example.client import ClientTask
+from example.client import ClientActor
 
-# conf.addTask( "client1", ClientTask, conf="example/conf/client.py" )
-# conf.addTask( "client2", ClientTask, conf="example/conf/client.py" )
-# conf.addTask( "client3", ClientTask, conf="example/conf/client.py" )
+# conf.addTask( "client1", ClientActor, conf="example/conf/client.py" )
+# conf.addTask( "client2", ClientActor, conf="example/conf/client.py" )
+# conf.addTask( "client3", ClientActor, conf="example/conf/client.py" )
 
-from example.statetask import StateTask
-# conf.addTask( "stateclient", StateTask )
+from example.statetask import StateActor
+# conf.addTask( "stateclient", StateActor )
 
 from example.netserver import EchoServerTask
 # conf.addTask( "netserver", EchoServerTask )
@@ -16,6 +16,6 @@ from example.netserver import EchoServerTask
 from example.netclient import EchoClientTask
 # conf.addTask( "netclient", EchoClientTask )
 
-from example.ring import RingTask
+from example.ring import RingActor
 for r in range( 100 ):
-    conf.addTask( "ring%d" % r, RingTask, index=r, conf="example/conf/ring.py" )
+    conf.add_task("ring%d" % r, RingActor, index=r, conf="example/conf/ring.py")

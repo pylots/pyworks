@@ -1,21 +1,21 @@
-from pyworks.net import NetTask, ClientConnection, AsciiProtocol, STXETXProtocol
+from pyworks.net import NetActor, ClientConnection, AsciiProtocol, STXETXProtocol
 
 
-class EchoClientTask(NetTask):
+class EchoClientTask(NetActor):
     def init(self):
         self.client = None
         self.count = 0
         self.conn = None
 
     def conf(self):
-        self.add_listener("netserver")
+        self.observe("netserver")
 
     def server_ready(self, address):
         self.log('The server is ready, connect...%s:%d' % (address))
         if self.conn is not None:
             self.log("Connection already UP!")
             return
-        self.conn = ClientConnection(self.get_service(), address, protocol=AsciiProtocol)
+        self.conn = ClientConnection(self.actor(), address, protocol=AsciiProtocol)
         self.conn.connect()
         
     def net_up(self, conn, level):

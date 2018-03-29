@@ -5,10 +5,11 @@ from select import select
 from threading import Thread
 from queue import Queue, Empty
 
-from pyworks import Task
+from pyworks import Actor
 
 
 class Protocol(object):
+
     def swrite(self, sock, buffer):
         sock.send(bytes(buffer, 'utf8'))
 
@@ -32,6 +33,7 @@ SKIP = 3
 
 
 class FramedProtocol(Protocol):
+
     def __init__(self, start='<', end='>', escape='\\'):
         self.start = start
         self.end = end
@@ -40,15 +42,16 @@ class FramedProtocol(Protocol):
         self.buffer = ""
         self.count = 0
         self.maxlen = 1000000
-        
+
     def receive(self, sock):
         n = 0
         for line in str(self.sread(sock), 'utf8'):
             for c in line:
                 n += 1
                 if n > self.maxlen:
-                    print ("Telegram too long")
+                    print("Telegram too long")
                     yield self.buffer
+
                 if self.state == HUNT:
                     if c == self.start:
                         self.state = TELE
@@ -58,6 +61,7 @@ class FramedProtocol(Protocol):
                 elif self.state == TELE:
                     if c == self.end:
                         yield self.buffer
+
                         self.state = HUNT
                         self.buffer = ""
                     elif c == self.escape:
@@ -84,11 +88,13 @@ class AsciiProtocol(FramedProtocol):
 
 
 class STXETXProtocol(FramedProtocol):
+
     def __init__(self):
         FramedProtocol.__init__(self, start='\x02', end='\x03', escape='\x1b')
 
 
 class Connection(object):
+
     def __init__(self, task, address, protocol=Protocol, connections=1):
         self.task = task
         self.address = address
@@ -136,11 +142,13 @@ class Connection(object):
                 if self.protocol.timeout(self):
                     self.task.net_timeout(self)
                 return True
+
             for telegram in self.protocol.receive(self.sock):
                 self.task.net_received(self, telegram)
         except:
             self.task.log("Exception in socket.recv: %s" % sys.exc_info()[1])
             return False
+
         return True
 
     def run(self):
@@ -171,6 +179,7 @@ class Connection(object):
 
 
 class ServerConnection(Connection):
+
     def level1(self):
         try:
             self.serversocket = socket(AF_INET, SOCK_STREAM)
@@ -181,6 +190,7 @@ class ServerConnection(Connection):
         except:
             self.task.log("ServerConnection Exception: %s" % sys.exc_info()[1])
             return False
+
         return True
 
     def level2(self):
@@ -189,10 +199,12 @@ class ServerConnection(Connection):
         except:
             self.task.log('Exception in accept: %s' % sys.exc_info()[1])
             return False
+
         return True
 
 
 class ClientConnection(Connection):
+
     def level2(self):
         try:
             self.sock = socket(AF_INET, SOCK_STREAM)
@@ -200,10 +212,12 @@ class ClientConnection(Connection):
         except:
             self.task.log("ClientConnect Exception: %s" % sys.exc_info()[1])
             return False
+
         return True
 
 
-class NetTask(Task):
+class NetActor(Actor):
+
     def net_ready(self, address):
         pass
 
@@ -214,7 +228,7 @@ class NetTask(Task):
         pass
 
     def net_received(self, conn, msg):
-        self.info("received: "+msg)
+        self.info("received: " + msg)
 
     def net_timeout(self, conn):
         pass

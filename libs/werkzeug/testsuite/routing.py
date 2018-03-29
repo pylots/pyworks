@@ -199,8 +199,8 @@ class RoutingTestCase(WerkzeugTestCase):
             if raise_this is not None:
                 raise raise_this
             return Response(repr((endpoint, values)))
-        dispatch = lambda p, q=False: Response.force_type(adapter.dispatch(view_func, p,
-                                                          catch_http_exceptions=q), env)
+        dispatch = lambda p, q=False: Response.force_type(adapter.notify(view_func, p,
+                                                                         catch_http_exceptions=q), env)
 
         assert dispatch('/').data == b"('root', {})"
         assert dispatch('/foo').status_code == 301

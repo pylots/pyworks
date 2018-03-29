@@ -3,4 +3,5 @@ db/
 log/
 *.class
 __pycache__
-
+venv/
+.idea/

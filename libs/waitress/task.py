@@ -51,7 +51,7 @@ class JustTesting(Exception):
     pass
 
 class ThreadedTaskDispatcher(object):
-    """A Task Dispatcher that creates a thread for each task.
+    """A Actor Dispatcher that creates a thread for each task.
     """
     stop_count = 0 # Number of threads that will stop soon.
     start_new_thread = thread.start_new_thread

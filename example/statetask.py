@@ -1,4 +1,4 @@
-from pyworks import Task, State
+from pyworks import Actor, State
 
 
 class BaseState(State):
@@ -31,10 +31,10 @@ class TimeoutState(BaseState):
         self.task.close()
 
 
-class StateTask(Task):
+class StateActor(Actor):
     def init(self):
-        self.log("StateTask init")
+        self.log("StateActor init")
         self.set_state(InitialState)
 
     def conf(self):
-        self.add_listener("worker")
+        self.observe("worker")

@@ -11,23 +11,24 @@ import sys
 import settings
 
 from pyworks.taskmanager import Module, Manager
-from web.tasks import WebServer, SocketServer, TestTask
+from web.tasks import WebServer, SocketServer, TestActor
 
-from pyworks.logger import LoggerTask
+from pyworks.logger import LoggerActor
 
 sys_tasks = {
     "ux": Module("ux", "./web/web.conf", WebServer),
-    "wstest": Module("wstest", "./web/web.conf", TestTask),
+    "wstest": Module("wstest", "./web/web.conf", TestActor),
     "ws": Module("ws", "./web/ws.conf", SocketServer),
-    "logger": Module("logger", "./logger/logger.conf", LoggerTask)
+    "logger": Module("logger", "./logger/logger.conf", LoggerActor),
 }
 
 
 class Tasks(object):
+
     def __init__(self):
         self.list = {}
 
-    def addTask(self, name, factory, conf=None, index=None):
+    def add_task(self, name, factory, conf=None, index=None):
         self.list[name] = Module(name, conf, factory)
         if index:  # Overwriting default index/pid
             self.list[name].index = index
@@ -41,13 +42,14 @@ def user_tasks(manager, conffile):
     exec(code, {'conf': c})
     return c.list
 
+
 if __name__ == "__main__":
     m = Manager()
-    m.loadModules(sys_tasks, daemon=1)
-    m.loadModules(user_tasks(m, 'conf/usertasks.py'))
-    m.initModules()
-    m.confModules()
-    m.runModules()
+    m.load_modules(sys_tasks, daemon=1)
+    m.load_modules(user_tasks(m, 'conf/usertasks.py'))
+    m.init_modules()
+    m.conf_modules()
+    m.run_modules()
 
     for module in m.get_modules():
         exec("%s=module.proxy" % (module.name))
@@ -64,19 +66,21 @@ if __name__ == "__main__":
         if line == "exit":
             running = False
             continue
+
         if line == "dump":
-            m.dumpModules()
+            m.dump_modules()
             continue
+
         try:
             exec(line)
             prompt = ">>"
         except:
-            print ("%s" % sys.exc_info()[1])
+            print("%s" % sys.exc_info()[1])
             prompt = "?>>"
 
-    m.closeModules()
+    m.close_modules()
     m.shutdown()
-    
+
     # wait for all to close
     for name, module in m.modules.items():
         if not module.daemon:

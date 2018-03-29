@@ -1,10 +1,10 @@
-from pyworks import Task, FutureShock, Filter
+from pyworks import Actor, FutureShock, Filter
 
 from time import time
 
-class RingTask(Task) :
+class RingActor(Actor) :
     """
-    Send messages to next Task in Ring
+    Send messages to next Actor in Ring
     """
     def init(self):
         self.count = 1
@@ -12,10 +12,10 @@ class RingTask(Task) :
         if self.get_index() >= 99 :
             self.n = 0
         self.log("%s: ring%d->ring%d" % (self.get_name(), self.get_index(), self.n))
-        self.next = self.get_service("ring%d" % self.n)
+        self.next = self.actor("ring%d" % self.n)
 
     def conf(self):
-        self.add_listener("ring%d" % self.n)
+        self.observe("ring%d" % self.n)
 
     def setCount(self, count):
         self.count = count

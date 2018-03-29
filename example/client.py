@@ -1,20 +1,20 @@
-from pyworks import Task, FutureShock, Filter, Future
+from pyworks import Actor, FutureShock, Filter, Future
 
 from time import time
 
 
-class ClientTask(Task) :
-    def setNtimeout(self, n):
+class ClientActor(Actor) :
+    def set_timeout(self, n):
         self.ntimeout = n
         self.count = 1
 
     def init(self):
         self.ntimeout = 0
         self.answers = []
-        self.worker = self.get_service("worker")
+        self.worker = self.actor("worker")
 
     def conf(self):
-        self.add_listener("worker")
+        self.observe("worker")
 
     def timeout(self):
         self.log("timeout: %d" % self.ntimeout)

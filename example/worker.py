@@ -1,7 +1,7 @@
-from pyworks import Task
+from pyworks import Actor
 
 
-class WorkerTask(Task):
+class WorkerActor(Actor):
     def init(self):
         self.ntimeout = 0
         self.future = None
@@ -20,7 +20,7 @@ class WorkerTask(Task):
         self.ntimeout += 1
         # self.log("timeout in worker: %d" % self.ntimeout)
         if self.ntimeout == 4:
-            self.dispatch().worker_done("good-bye")
+            self.notify().worker_done("good-bye")
 
         if self.ntimeout == 5:
             self.log('setting value for long_work()....')

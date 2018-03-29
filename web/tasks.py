@@ -1,28 +1,28 @@
 import threading
-from pyworks import Task
+from pyworks import Actor
 from pyworks.taskmanager import ManagerManager
 from web.views import app, init_db
 from waitress import serve
 from web.websocketserver import WebSocketServer, WebSocket
 
 
-class WebServer(Task):
+class WebServer(Actor):
+
     def init(self):
         init_db()
 
     def start(self):
-        app.config.update(dict(
-                COWORKS=self._manager
-               ))
+        app.config.update(dict(PYWORKS=self._manager))
         serve(app, host='0.0.0.0', port=5000)
 
 
-class TestTask(Task):
+class TestActor(Actor):
+
     def init(self):
         self.n = 0
 
     def conf(self):
-        self.wsocket = self.get_service("ws")
+        self.wsocket = self.actor("ws")
 
     def send(self, msg):
         self.wsocket.send("message:%s" % msg)
@@ -36,19 +36,24 @@ class TestTask(Task):
 
 
 class WsHandler(WebSocket):
-    def handleConnected(self):
+    def __init__(self, server, sock, address):
+        self.ws = None
+        super().__init__(server, sock, address)
+
+    def handle_connected(self):
         manager = ManagerManager.get_manager()
-        self.ws = manager.get_service("ws")
+        self.ws = manager.get_actor("ws")
         self.ws.add_client(self)
 
-    def handleClose(self):
+    def handle_close(self):
         self.ws.del_client(self)
 
-    def handleMessage(self):
+    def handle_message(self):
         self.ws.message(self.data)
 
 
-class SocketServer(Task):
+class SocketServer(Actor):
+
     def init(self):
         self.clients = []
 
@@ -75,4 +80,4 @@ class SocketServer(Task):
     def send(self, message):
         for client in self.clients:
             self.debug("in send %s to %s" % (message, client))
-            client.sendMessage(message)
+            client.send_message(message)
