@@ -1,4 +1,4 @@
-from pyworks import Actor, FutureShock, Filter
+from pyworks import Actor
 
 from time import time
 
@@ -6,15 +6,15 @@ class RingActor(Actor) :
     """
     Send messages to next Actor in Ring
     """
-    def init(self):
+    def pw_initialized(self):
         self.count = 1
-        self.n = self.get_index() + 1
-        if self.get_index() >= 99 :
+        self.n = self.pw_index() + 1
+        if self.pw_index() >= 99 :
             self.n = 0
-        self.log("%s: ring%d->ring%d" % (self.get_name(), self.get_index(), self.n))
+        self.log("%s: ring%d->ring%d" % (self.pw_name(), self.pw_index(), self.n))
         self.next = self.actor("ring%d" % self.n)
 
-    def conf(self):
+    def pw_configured(self):
         self.observe("ring%d" % self.n)
 
     def setCount(self, count):
@@ -24,16 +24,16 @@ class RingActor(Actor) :
         self.nmsg = nmsg
 
     def ringop(self, name, n):
-        if n % 10000 == 0:
-            self.log("%s: from %s n=%d" % (self.get_name(), name, n))
+        if n % 50000 == 0:
+            self.log("%s: from %s n=%d" % (self.pw_name(), name, n))
         if n < 100000:
-            self.next.ringop(self.get_name(), n + 1)
+            self.next.ringop(self.pw_name(), n + 1)
         if n >= 100000:
             self.log("Done: %d secs" % (time() - self.start))
 
-    def timeout(self):
+    def pw_timeout(self):
         self.start = time()
-        if self.count > 0 and self.get_index() == 0:
-            self.log("%s calling next with %d" % (self.get_name(), self.n))
-            self.next.ringop(self.get_name(), self.n)
+        if self.count > 0 and self.pw_index() == 0:
+            self.log("%s calling next with %d" % (self.pw_name(), self.n))
+            self.next.ringop(self.pw_name(), self.n)
         self.count -= 1

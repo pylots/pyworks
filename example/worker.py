@@ -2,7 +2,7 @@ from pyworks import Actor
 
 
 class WorkerActor(Actor):
-    def init(self):
+    def pw_initialized(self):
         self.ntimeout = 0
         self.future = None
 
@@ -16,11 +16,11 @@ class WorkerActor(Actor):
         self.future = future
         self.log('starting to long work, return on %s' % self.future)
 
-    def timeout(self):
+    def pw_timeout(self):
         self.ntimeout += 1
         # self.log("timeout in worker: %d" % self.ntimeout)
         if self.ntimeout == 4:
-            self.observers.worker_done("good-bye")
+            self.notify.worker_done("good-bye")
 
         if self.ntimeout == 5:
             self.log('setting value for long_work()....')

@@ -2,7 +2,7 @@ from pyworks import Actor, State
 
 
 class BaseState(State):
-    def timeout(self):
+    def pw_timeout(self):
         self.log("Timeout in BaseState")
 
     def worker_done(self, msg):
@@ -13,28 +13,28 @@ class BaseState(State):
 
 
 class InitialState(BaseState):
-    def timeout(self):
+    def pw_timeout(self):
         self.log("timeout in InitialState")
-        self.set_state(TimeoutState)
+        self.pw_state(TimeoutState)
 
 
 class TimeoutState(BaseState):
-    def timeout(self):
+    def pw_timeout(self):
         # self.log("timeout in TimeoutState")
         pass
 
     def worker_done(self, msg):
         self.log("The worker is done, going back to TimeoutState")
-        self.set_state(InitialState)
+        self.pw_state(InitialState)
 
     def close(self):
         self.actor.close()
 
 
 class StateActor(Actor):
-    def init(self):
+    def pw_initialized(self):
         self.log("StateActor init")
-        self.set_state(InitialState)
+        self.pw_state(InitialState)
 
-    def conf(self):
+    def pw_configured(self):
         self.observe("worker")

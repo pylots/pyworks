@@ -3,8 +3,8 @@ login_manager = None
 import threading
 
 from pyworks import Actor
-from pyworks.manager import ManagerManager
-from pyworks.util import settings
+from pyworks.core import ManagerManager
+# from pyworks.util import settings
 from waitress import serve
 from web.views import app, init_db
 from web.websocketserver import WebSocketServer, WebSocket
@@ -12,31 +12,31 @@ from web.websocketserver import WebSocketServer, WebSocket
 
 class WebServer(Actor):
 
-    def init(self):
+    def pw_initialized(self):
         app.config.update(dict(
             PYWORKS=self._manager,
-            DATABASE=os.path.join(settings.PRODIR, 'db', 'pyworks.db'),
+            DATABASE=os.path.join("/projects/pyworks", 'db', 'pyworks.db'),
             DEBUG=True,
             SECRET_KEY="IWKbfXW2UdK/WFVvmMQ96fKtKwFNs0WqDmYyyC3Wm0y5x7SKOCkcXYdF7aWqX51"
         ))
         init_db()
 
-    def start(self):
+    def pw_started(self):
         serve(app, host='0.0.0.0', port=5000)
 
 
 class TestActor(Actor):
 
-    def init(self):
+    def pw_initialized(self):
         self.n = 0
 
-    def conf(self):
+    def pw_configured(self):
         self.wsocket = self.actor("ws")
 
     def send(self, msg):
         self.wsocket.send("message:%s" % msg)
 
-    def timeout(self):
+    def pw_timeout(self):
         # print "Timeout in Test"
         self.wsocket.send("alarms:%d" % self.n)
         self.n += 1
@@ -63,19 +63,22 @@ class WsHandler(WebSocket):
 
 class SocketServer(Actor):
 
-    def init(self):
+    def pw_initialized(self):
         self.clients = []
-
-    def conf(self):
+        self.n = 0
+        
+    def pw_configured(self):
         self.server = WebSocketServer(self.host, self.port, WsHandler)
         self.ws_thread = threading.Thread(target=self.server.serveforever)
         self.ws_thread.daemon = True
 
-    def start(self):
+    def pw_started(self):
         self.ws_thread.start()
 
     def message(self, message):
-        self.log("Got a message from a client: %s" % message)
+        if self.n % 1000 == 0:
+            self.log("Got a message from a client: %s" % message)
+        self.n += 1
 
     def del_client(self, client):
         if client in self.clients:

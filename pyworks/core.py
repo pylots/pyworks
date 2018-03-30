@@ -276,11 +276,10 @@ class DispatchMethodWrapper(object):
 
     def __call__(self, *args, **kwds):
         # dispatch to all the listeners
-        for listener in self.actor.get_observers():
-            if listener['filter'].filter(self.method, *args, **kwds):
-                listener['actor'].get_queue().put(
-                    DistributedMethod(self.actor, self.method, NoFuture(), *args, **kwds)
-                )
+        for listener in self.actor.pw_observers():
+            listener['actor'].pw_queue().put(
+                DistributedMethod(self.actor, self.method, NoFuture(), *args, **kwds)
+            )
 
 
 class ProxyMethodWrapper:
@@ -336,7 +335,7 @@ class Runner(Thread):
                 m = self.queue.get(timeout=self.actor._timeout)
                 if not hasattr(self.actor._state, m.name):
                     self.manager.logger.warning("%s does not have %s" % (self.actor._state, m.name))
-                    self.actor._state.not_implemented(m.name)
+                    self.actor._state.pw_unimplemented(m.name)
                     continue
 
                 func = getattr(self.actor._state, m.name)
@@ -351,18 +350,18 @@ class Runner(Thread):
                         "funccall %s failed: %s (%s)" %
                         (m.name, sys.exc_info()[1], traceback.format_exc()),
                     )
-                    self.actor._state.exception(m.name)
+                    self.actor._state.pw_exception(m.name)
             except Empty:
                 if self.state == "Ready":
                     try:
-                        self.actor._state.timeout()
+                        self.actor._state.pw_timeout()
                     except:
                         self.manager.log(
                             self.actor,
                             "timeout %s failed: %s (%s)" %
                             (m.name, sys.exc_info()[1], traceback.format_exc()),
                         )
-                        self.actor._state.exception(m.name)
+                        self.actor._state.pw_exception(m.name)
         self.state = "Stopped"
 
 
@@ -420,7 +419,7 @@ class Manager(object):
         return self.logger
 
     def error(self, actor, msg):
-        self.modules["logger"].proxy.log(actor, ERROR, msg)
+        self.logger.error("%s: %s" % (actor._name, msg))
 
     def load_modules(self, actor_list, daemon=0):
         self.state = "Loading"
@@ -446,7 +445,7 @@ class Manager(object):
     def init_modules(self):
         self.state = "Initializing"
         for name, module in self.modules.items():
-            module.actor.init()
+            module.actor.pw_initialized()
         self.log(self, "All actors initialized")
         self.state = "Initialized"
 
@@ -467,8 +466,8 @@ class Manager(object):
                             code = compile(f.read(), module.conf, 'exec')
                             exec(code, {'actor': module.actor})
                         else:
-                            logger.warning('%s could not be read' % module.conf)
-                    module.actor.conf()
+                            self.logger.warning('%s could not be read' % module.conf)
+                    module.actor.pw_configured()
             prio += 1
         self.state = "Configured"
 
@@ -479,7 +478,7 @@ class Manager(object):
             for name, module in self.modules.items():
                 if module.prio == prio:
                     module.runner.start()
-                    module.proxy.start()
+                    module.proxy.pw_started()
                     self.log(module.actor, "%d: Starting runner: %s" % (prio, name))
             prio += 1
         self.state = "Running"

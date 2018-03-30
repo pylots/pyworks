@@ -1,30 +1,31 @@
 from time import time
 
-from pyworks import Actor, FutureShock, Filter, Future
+from pyworks import Actor, FutureShock, Future
 
 
 class ClientActor(Actor) :
-    def set_timeout(self, n):
+    def pw_timeout(self, n):
         self.ntimeout = n
         self.count = 1
 
-    def init(self):
+    def pw_initialized(self):
         self.ntimeout = 0
         self.answers = []
         self.worker = self.actor("worker")
 
-    def conf(self):
+    def pw_configured(self):
         self.observe("worker")
 
-    def timeout(self):
-        self.log("timeout: %d" % self.ntimeout)
+    def pw_timeout(self):
         self.ntimeout += 1
+        if self.ntimeout % 100 == 0:
+            self.log("timeout: %d" % self.ntimeout)
         if self.ntimeout == 2 or self.ntimeout == 4:
             return
             start = time()
             n = self.count * self.ntimeout
             for i in range(n):
-                a = self.worker.hello(i, "hello, from %s: %d" % (self.get_name(), self.ntimeout))
+                a = self.worker.hello(i, "hello, from %s: %d" % (self.pw_name(), self.ntimeout))
                 self.answers.append(a)
             t = time() - start
             self.log("%.0f msg/sec" % (float(n) / t))

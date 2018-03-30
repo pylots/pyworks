@@ -31,7 +31,7 @@ class Future(object):
 
     def set_value(self, value):
         if self.has_value:
-            logger.warning("Trying to set_value more than once")
+            raise Exception("Trying to set_value more than once")
         self.queue.put(value)
 
     def get_value(self, timeout=Ellipsis):
@@ -64,107 +64,71 @@ class Future(object):
         return self.value
 
 
-class State:
+class Loggable(object):
+    def __init__(self, logger):
+        self._logger = logger
+
+    def log(self, msg, *args, **kwargs):
+        self._logger.info("[%s] %s" % (self, msg), *args, **kwargs)
+
+    def debug(self, msg, *args, **kwargs):
+        self._logger.debug(msg, *args, **kwargs)
+
+    def info(self, msg, *args, **kwargs):
+        self._logger.info(msg, *args, **kwargs)
+
+    def warning(self, msg, *args, **kwargs):
+        self._logger.warning(msg, *args, **kwargs)
+
+    def error(self, msg, *args, **kwargs):
+        self._logger.error(msg, *args, **kwargs)
+
+    def critical(self, msg, *args, **kwargs):
+        self._logger.critical(msg, *args, **kwargs)
+
+
+class ActorInterface(Loggable):
+    def pw_initialized(self):
+        pass
+
+    def pw_configured(self):
+        pass
+
+    def pw_started(self):
+        pass
+
+    def pw_exception(self, method_name):
+        pass
+
+    def pw_timeout(self):
+        pass
+
+    def pw_close(self):
+        pass
+
+    def pw_unimplemented(self, name):
+        pass
+
+
+class State(ActorInterface):
 
     def __init__(self, actor):
-        self.actor = actor
+        self._actor = actor
+        super().__init__(self._actor._logger)
 
-    def __str__(self):
-        return self
-
-    def enter(self):
+    def pw_enter(self):
         pass
 
-    def leave(self):
+    def pw_leave(self):
         pass
 
-    def set_state(self, state):
-        self.actor._state.leave()
-        self.actor._state = state(self.actor)
-        self.actor._state.enter()
-
-    def log(self, msg):
-        self.actor.log(msg)
-
-    def start(self):
-        pass
-
-    def exception(self, method_name):
-        pass
-
-    def timeout(self):
-        pass
-
-    def close(self):
-        pass
+    def pw_state(self, state):
+        self._actor._state.pw_leave()
+        self._actor._state = state(self._actor)
+        self._actor._state.pw_enter()
 
 
-class Filter:
-
-    def __init__(self, actor=None):
-        self.actor = actor
-
-    def filter(self, method, *args, **kwds):
-        return True
-
-
-class Node:
-
-    def __init__(self, nid, val):
-        self.nid = nid
-        self.val = val
-        self.nodes = {}
-        self.parent = None
-
-    def notify(self, node):
-        self.parent.notify(node)
-
-    def add_node(self, node):
-        node.parent = self
-        self.nodes[node.nid] = node
-        return node
-
-    def get_nodeid(self):
-        if self.parent == None:
-            return self.nid
-
-        return self.parent.get_nodeid() + '.' + self.name
-
-    def get_val(self):
-        return self.val
-
-    def set_val(self, val):
-        if self.val != val:
-            self.val = val
-            self.notify(self)
-
-    def get_node(self, nid):
-        return self.nodes[nid]
-
-    def lookup(self, nid):
-        node = self
-        for k in nid.split('.'):
-            if node.hasKey(k):
-                node = node.get_node(k)
-        return node
-
-    def has_nodeid(self, nid):
-        return nid in self.nodes
-
-    def level(self):
-        if self.parent == None:
-            return 0
-
-        return self.parent.level() + 1
-
-
-class Adapter:
-
-    def __init__(self):
-        pass
-
-
-class Actor:
+class Actor(ActorInterface):
 
     def __init__(self, module, manager):
         self._module, self._manager = module, manager
@@ -172,77 +136,68 @@ class Actor:
         self._index = module.index
         self._state = self
         self._dispatch = None
-        self._timeout = 2
+        self._timeout = 5
         self._logger = manager.get_logger()
+        super().__init__(self._logger)
 
-    @property
-    def observers(self):
-        return self._dispatch
+    def __str__(self):
+        return "%s:%d" % (self._name, self._index)
 
-    def log(self, msg, *args, **kwargs):
-        self._manager.log(self, msg, *args, **kwargs)
-
-    def set_timeout(self, t):
+    def pw_set_timeout(self, t):
         self._timeout = t
 
-    def get_module(self):
+    def pw_module(self):
         return self._manager.modules[self._module.name]
 
-    def get_observers(self):
-        return self.get_module().listeners.values()
-
-    def get_queue(self):
+    def pw_queue(self):
         return self._module.runner.queue
 
-    def actor(self, name=None):
-        if not name:
-            return self._module.proxy
+    def pw_observers(self):
+        return self.pw_module().listeners.values()
 
-        return self._manager.get_actor(name)
-
-    def get_name(self):
+    def pw_name(self):
         return self._name
 
-    def get_manager(self):
+    def pw_manager(self):
         return self._manager
 
-    def get_pid(self):
+    def pw_pid(self):
         return self._module.pid
 
-    def get_index(self):
+    def pw_index(self):
         return self._index
 
-    def set_state(self, state):
+    def pw_state(self, state):
         self._state = state(self)
-        self._state.enter()
+        self._state.pw_enter()
 
-    def observe(self, name, filter=Filter()):
-        self._manager.modules[name].listeners[self._name] = {
-            'actor': self, 'filter': filter
-        }
+    def actor(self, name=None):
+        """
+        Get an async interface to an Actor running in a seperate thread
 
-    def closed(self):
-        self._module.runner.running = False
+        :param name: Name of the Actor as registred in settings
+        :return: An Async proxy to the Actor
+        """
+        if not name:
+            return self._module.proxy
+        return self._manager.get_actor(name)
 
-    def init(self):
-        pass
+    @property
+    def notify(self):
+        """
+        Usage:
+            self.notify.some_method(someargs)
 
-    def conf(self):
-        pass
+        Send a some_method message to all observers on this Actor
+        :return:
+        """
+        return self._dispatch
 
-    def close(self):
-        pass
-
-    def start(self):
-        pass
-
-    def timeout(self):
-        pass
-
-    def exception(self, method):
-        pass
-
-    def not_implemented(self, name):
-        self.error("Method not implemented: %s" % name)
-
+    def observe(self, name):
+        """
+        Start observing the Actor identified by name
+        :param name: Name of Actor to observe
+        :return:
+        """
+        self._manager.modules[name].listeners[self._name] = {'actor': self}
 

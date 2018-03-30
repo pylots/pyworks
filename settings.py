@@ -8,7 +8,7 @@ LOGDIR = os.path.join(PRODIR, 'log')
 DEBUG = False
 
 INSTALLED_ACTORS = [
-    # subsys('web'),
+    subsys('web'),
     subsys('example')
 ]
 

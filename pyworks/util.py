@@ -12,6 +12,6 @@ class Settings(object):
             return var
         return None
 
-
+#
 load_settings()
 settings = Settings()

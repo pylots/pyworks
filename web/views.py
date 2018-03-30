@@ -3,7 +3,6 @@ import os
 from sqlite3 import dbapi2 as sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash
 from flask_restful import Api, Resource
-from pyworks.util import settings
 
 from flask_login import LoginManager, login_user, logout_user, UserMixin, current_user
 
@@ -187,7 +186,7 @@ def actors():
 def show_actor(name):
     print('actor %s' % name)
     manager = app.config['PYWORKS']
-    module = manager.get_module(name)
+    module = manager.pw_module(name)
     return render_template('show_actor.html', module=module)
 
 
