@@ -20,7 +20,7 @@ class WorkerActor(Actor):
         self.ntimeout += 1
         # self.log("timeout in worker: %d" % self.ntimeout)
         if self.ntimeout == 4:
-            self.notify().worker_done("good-bye")
+            self.observers.worker_done("good-bye")
 
         if self.ntimeout == 5:
             self.log('setting value for long_work()....')

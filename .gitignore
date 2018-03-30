@@ -5,3 +5,6 @@ log/
 __pycache__
 venv/
 .idea/
+build/
+dist/
+pyworks.egg-info/

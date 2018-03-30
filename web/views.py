@@ -2,25 +2,16 @@
 import os
 from sqlite3 import dbapi2 as sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash
-from flask.ext import restful
+from flask_restful import Api, Resource
 from pyworks.util import settings
 
 from flask_login import LoginManager, login_user, logout_user, UserMixin, current_user
 
 # create our little application :)
 app = Flask(__name__)
-api = restful.Api(app)
+api = Api(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
-
-# Load default config and override config from an environment variable
-app.config.update(dict(
-    DATABASE=os.path.join(settings.PRODIR, 'db', 'pyworks.db'),
-    DEBUG=True,
-    SECRET_KEY="IWKbfXW2UdK/WFVvmMQ96fKtKwFNs0WqDmYyyC3Wm0y5x7SKOCkcXYdF7aWqX51"
-))
-# app.config.from_envvar('PYWORKS_SETTINGS', silent=True)
-
 
 class User(object):
 
@@ -221,7 +212,7 @@ def logout():
     return redirect(url_for('main'))
 
 
-class RestTest(restful.Resource):
+class RestTest(Resource):
 
     def get(self):
         manager = app.config['PYWORKS']

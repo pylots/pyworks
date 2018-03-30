@@ -1,7 +1,5 @@
+import sys
 import logging
-from threading import Lock
-import threading
-from datetime import datetime
 from queue import Queue, Empty
 
 
@@ -17,11 +15,6 @@ class NoFuture(object):
     def get_value(self):
         return None
 
-
-logger = logging.getLogger('pyworks')
-logger.setLevel(logging.DEBUG)
-
-
 class Future(object):
 
     def __init__(self):
@@ -29,7 +22,6 @@ class Future(object):
         self.has_value = False
         self.value = None
         self.ready = False
-        self.lock = Lock()
 
     def is_ready(self):
         if self.has_value:
@@ -181,13 +173,14 @@ class Actor:
         self._state = self
         self._dispatch = None
         self._timeout = 2
-        self._logger = logger
+        self._logger = manager.get_logger()
 
-    def notify(self):
+    @property
+    def observers(self):
         return self._dispatch
 
     def log(self, msg, *args, **kwargs):
-        self._logger.info(msg, *args, **kwargs)
+        self._manager.log(self, msg, *args, **kwargs)
 
     def set_timeout(self, t):
         self._timeout = t
@@ -251,3 +244,5 @@ class Actor:
 
     def not_implemented(self, name):
         self.error("Method not implemented: %s" % name)
+
+

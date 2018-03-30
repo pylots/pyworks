@@ -1,0 +1,147 @@
+import os
+import argparse
+from jinja2 import Template
+from .core import runserver
+import logging
+
+parser = argparse.ArgumentParser(description='Example with non-optional arguments')
+
+parser.add_argument('--create-project', action="store", dest="project",
+                    help="Create a pyworks project structure")
+parser.add_argument('--create-subsys', action="store", dest="subsys",
+                    help="Create a pyworks sub system")
+parser.add_argument('--create-actor', action="store", dest="actor",
+                    help="Create a new actor module")
+parser.add_argument('--run', '-r', action="store_true", help="run pyworks")
+
+project_template = Template("""#!/usr/bin/env python
+#
+# pyworks - an Actor Framework
+#
+# Copyright (C) __PYLOTS__
+#
+# Project: {{ target }}
+#
+import sys
+
+
+if __name__ == '__main__':
+    from pyworks.cli import commandline
+
+    commandline()
+
+""")
+
+settings_template = Template("""import os
+
+from pyworks.core import actor, subsys
+
+PRODIR = os.path.dirname(os.path.realpath(__file__))
+LOGDIR = os.path.join(PRODIR, 'log')
+
+INSTALLED_ACTORS = [
+    # subsys('somesys'),
+    # actor('someactor', SomeActor)
+]
+
+""")
+
+subsys_template = Template("""from pyworks import Actor
+from pyworks.core import actor
+
+
+class {{ target|capitalize }}Actor(Actor):
+    def init(self):
+        pass
+        
+    def conf(self):
+        pass
+        
+    def timeout(self):
+        pass
+
+actors = [
+    actor("{{target}}", {{ target|capitalize }}Actor),
+]
+
+""")
+
+actor_template = Template("""from pyworks import Actor
+
+
+class {{ target|capitalize }}Actor(Actor):
+    def init(self):
+        pass
+        
+    def conf(self):
+        pass
+        
+    def timeout(self):
+        pass
+
+""")
+
+def make_init(path):
+    path = f"{path}/__init__.py"
+    with open(path, "w") as fd:
+        pass
+
+def create_project(target):
+    if os.path.exists(target):
+        print(f"Already exists: {target}")
+        return
+    os.makedirs(target)
+    path = f"{target}/pywork.py"
+    with open(path, "w") as fd:
+        fd.write(project_template.render(target=target))
+    os.chmod(path, 0o755)
+    print(f"created: {path}")
+    path = f"{target}/settings.py"
+    with open(path, "w") as fd:
+        fd.write(settings_template.render(target=target))
+    os.makedirs(f"{target}/log")
+
+
+def create_subsys(target):
+    if os.path.exists(target):
+        print(f"Already exists: {target}")
+        return
+    os.makedirs(target)
+    make_init(target)
+    path = f"{target}/actors.py"
+    with open(path, "w") as fd:
+        fd.write(subsys_template.render(target=target))
+
+
+def create_actor(target):
+    if os.path.exists(target):
+        print(f"Already exists: {target}")
+        return
+    os.makedirs(target)
+    make_init(target)
+    path = f"{target}/actors.py"
+    with open(path, "w") as fd:
+        fd.write(actor_template.render(target=target))
+
+
+FORMAT="%(asctime)s.%(msecs)03d %(levelname)-5s %(message)s"
+
+
+
+def commandline():
+    ns = parser.parse_args()
+    if ns.project:
+        create_project(ns.project)
+    elif ns.subsys:
+        create_subsys(ns.subsys)
+    elif ns.actor:
+        create_actor(ns.actor)
+    elif ns.run:
+        from pyworks.util import settings
+        logger = logging.getLogger('pyworks')
+        level = logging.INFO
+        if settings.DEBUG: level = logging.DEBUG
+        logging.basicConfig(filename=os.path.join(settings.LOGDIR, 'pyworks.log'),
+                            format=FORMAT, datefmt='%y%m%d %H%M%S',
+                            level=level)
+        runserver(logger)
