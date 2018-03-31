@@ -5,7 +5,6 @@ from threading import Thread
 import sys, time, os, traceback
 from pyworks import Future, NoFuture
 
-
 pyworks_settings = globals()
 def load_settings():
     import importlib
@@ -26,13 +25,14 @@ def actor(name, factory, conf=None, index=None):
         user_actors[name].index = index
     return user_actors[name]
 
-
+subsystems = []
 def subsys(name):
-    mod = importlib.import_module('%s.actors' % name)
+    subsystems.append(name)
 
-def runserver(logger):
+def runserver(logger, debug=False):
     s = load_settings()
-    m = Manager(logger=logger)
+    m = Manager(logger=logger, debug=debug)
+    m.load_subsys(subsystems)
     m.load_modules(user_actors)
     m.init_modules()
     m.conf_modules()
@@ -268,6 +268,9 @@ class DistributedMethod(object):
     def __init__(self, actor, name, future, *args, **kwds):
         self.actor, self.name, self.future, self.args, self.kwds = actor, name, future, args, kwds
 
+    def __str__(self):
+        return "DisMeth: %s.%s" % (self.actor, self.name)
+
 
 class DispatchMethodWrapper(object):
 
@@ -333,6 +336,7 @@ class Runner(Thread):
             try:
                 self.state = "Ready"
                 m = self.queue.get(timeout=self.actor._timeout)
+                if self.manager.debug: print("m=%s" % m)
                 if not hasattr(self.actor._state, m.name):
                     self.manager.logger.warning("%s does not have %s" % (self.actor._state, m.name))
                     self.actor._state.pw_unimplemented(m.name)
@@ -400,13 +404,14 @@ class PrintLogger(object):
 class Manager(object):
     pid = 0
 
-    def __init__(self, env="pyworks", logger=PrintLogger()):
+    def __init__(self, env="pyworks", logger=PrintLogger(), debug=False):
         self.env = env
         self.modules = {}
         self.prio = 0
         self.name = "Manager"
         self.state = "Initial"
         self.logger = logger
+        self.debug = debug
         ManagerManager.set_manager(self)
 
     def log(self, actor, msg):
@@ -421,10 +426,16 @@ class Manager(object):
     def error(self, actor, msg):
         self.logger.error("%s: %s" % (actor._name, msg))
 
+    def load_subsys(self, subsystems):
+        for subsys in subsystems:
+            if self.debug: print("Load subsys: %s" % subsys)
+            mod = importlib.import_module('%s.actors' % subsys)
+
     def load_modules(self, actor_list, daemon=0):
         self.state = "Loading"
         index = 0
         for name, module in actor_list.items():
+            if self.debug: print("Load: %s" % name)
             module.name = name
             module.actor = module.factory(module, self)
             module.actor._dispatch = Dispatcher(module.actor)
@@ -470,6 +481,7 @@ class Manager(object):
                     module.actor.pw_configured()
             prio += 1
         self.state = "Configured"
+        if self.debug: print("Configured")
 
     def run_modules(self):
         self.state = "Starting"
@@ -482,6 +494,7 @@ class Manager(object):
                     self.log(module.actor, "%d: Starting runner: %s" % (prio, name))
             prio += 1
         self.state = "Running"
+        if self.debug: print("Running")
 
     def close_modules(self):
         self.state = "Closing"

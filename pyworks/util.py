@@ -2,7 +2,6 @@ import os
 
 from .core import pyworks_settings, load_settings
 
-
 class Settings(object):
     def __getattr__(self, item):
         if item in pyworks_settings:

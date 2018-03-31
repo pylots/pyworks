@@ -2,6 +2,8 @@ from time import time
 
 from pyworks import Actor, FutureShock, Future
 
+from pyworks.util import settings
+
 
 class ClientActor(Actor) :
     def pw_timeout(self, n):

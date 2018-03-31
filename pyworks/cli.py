@@ -13,6 +13,7 @@ parser.add_argument('--create-subsys', action="store", dest="subsys",
 parser.add_argument('--create-actor', action="store", dest="actor",
                     help="Create a new actor module")
 parser.add_argument('--run', '-r', action="store_true", help="run pyworks")
+parser.add_argument('--debug', '-d', action="store_true", help="debug mode")
 
 project_template = Template("""#!/usr/bin/env python
 #
@@ -51,14 +52,24 @@ from pyworks.core import actor
 
 
 class {{ target|capitalize }}Actor(Actor):
-    def init(self):
+    def pw_initialized(self):
         pass
         
-    def conf(self):
+    def pw_configured(self):
         pass
         
-    def timeout(self):
+    def pw_started(self):
         pass
+        
+    def pw_timeout(self):
+        pass
+        
+    def pw_exception(self, method_name):
+        pass
+        
+    def pw_unimplemented(self, method_name):
+        pass
+        
 
 actors = [
     actor("{{target}}", {{ target|capitalize }}Actor),
@@ -70,15 +81,24 @@ actor_template = Template("""from pyworks import Actor
 
 
 class {{ target|capitalize }}Actor(Actor):
-    def init(self):
+    def pw_initialized(self):
         pass
         
-    def conf(self):
+    def pw_configured(self):
         pass
         
-    def timeout(self):
+    def pw_started(self):
+        pass
+        
+    def pw_timeout(self):
         pass
 
+    def pw_exception(self, method_name):
+        pass
+        
+    def pw_unimplemented(self, method_name):
+        pass
+        
 """)
 
 def make_init(path):
@@ -144,4 +164,4 @@ def commandline():
         logging.basicConfig(filename=os.path.join(settings.LOGDIR, 'pyworks.log'),
                             format=FORMAT, datefmt='%y%m%d %H%M%S',
                             level=level)
-        runserver(logger)
+        runserver(logger, ns.debug)

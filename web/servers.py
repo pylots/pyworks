@@ -4,7 +4,7 @@ import threading
 
 from pyworks import Actor
 from pyworks.core import ManagerManager
-# from pyworks.util import settings
+from pyworks.util import settings
 from waitress import serve
 from web.views import app, init_db
 from web.websocketserver import WebSocketServer, WebSocket
@@ -15,7 +15,7 @@ class WebServer(Actor):
     def pw_initialized(self):
         app.config.update(dict(
             PYWORKS=self._manager,
-            DATABASE=os.path.join("/projects/pyworks", 'db', 'pyworks.db'),
+            DATABASE=os.path.join(settings.PRODIR, 'db', 'pyworks.db'),
             DEBUG=True,
             SECRET_KEY="IWKbfXW2UdK/WFVvmMQ96fKtKwFNs0WqDmYyyC3Wm0y5x7SKOCkcXYdF7aWqX51"
         ))
@@ -66,7 +66,7 @@ class SocketServer(Actor):
     def pw_initialized(self):
         self.clients = []
         self.n = 0
-        
+
     def pw_configured(self):
         self.server = WebSocketServer(self.host, self.port, WsHandler)
         self.ws_thread = threading.Thread(target=self.server.serveforever)
