@@ -1,6 +1,9 @@
 import sys
 import logging
-from queue import Queue, Empty
+try:
+    from queue import Queue, Empty
+except ImportError:
+    from Queue import Queue, Empty
 
 
 class FutureShock(Exception):
@@ -114,7 +117,7 @@ class State(ActorInterface):
 
     def __init__(self, actor):
         self._actor = actor
-        super().__init__(self._actor._logger)
+        super(ActorInterface, self).__init__(self._actor._logger)
 
     def pw_enter(self):
         pass
@@ -138,7 +141,7 @@ class Actor(ActorInterface):
         self._dispatch = None
         self._timeout = 5
         self._logger = manager.get_logger()
-        super().__init__(self._logger)
+        super(ActorInterface, self).__init__(self._logger)
 
     def __str__(self):
         return "%s:%d" % (self._name, self._index)

@@ -102,50 +102,49 @@ class {{ target|capitalize }}Actor(Actor):
 """)
 
 def make_init(path):
-    path = f"{path}/__init__.py"
-    with open(path, "w") as fd:
+    file = "%s/__init__.py" % path
+    with open(file, "w") as fd:
         pass
 
 def create_project(target):
     if os.path.exists(target):
-        print(f"Already exists: {target}")
+        print("Already exists: %s" % target)
         return
     os.makedirs(target)
-    path = f"{target}/pywork.py"
+    path = "%s/pywork.py" % target
     with open(path, "w") as fd:
         fd.write(project_template.render(target=target))
     os.chmod(path, 0o755)
-    print(f"created: {path}")
-    path = f"{target}/settings.py"
+    print("created: %s" % path)
+    path = "%s/settings.py" % target
     with open(path, "w") as fd:
         fd.write(settings_template.render(target=target))
-    os.makedirs(f"{target}/log")
+    os.makedirs("%s/log" % target)
 
 
 def create_subsys(target):
     if os.path.exists(target):
-        print(f"Already exists: {target}")
+        print("Already exists: %s" % target)
         return
     os.makedirs(target)
     make_init(target)
-    path = f"{target}/actors.py"
+    path = "%s/actors.py" % target
     with open(path, "w") as fd:
         fd.write(subsys_template.render(target=target))
 
 
 def create_actor(target):
     if os.path.exists(target):
-        print(f"Already exists: {target}")
+        print("Actor already exists: %s" % target)
         return
     os.makedirs(target)
     make_init(target)
-    path = f"{target}/actors.py"
+    path = "%s/actors.py" % target
     with open(path, "w") as fd:
         fd.write(actor_template.render(target=target))
 
 
 FORMAT="%(asctime)s.%(msecs)03d %(levelname)-5s %(message)s"
-
 
 
 def commandline():

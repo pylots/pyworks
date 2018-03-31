@@ -21,13 +21,13 @@ setup(
     classifiers=[  # Optional
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
-        'Topic :: Software Development :: Concurrent Framework',
+        'Topic :: Software Development',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.6',
     ],
     keywords='actors concurrency development',
     packages=find_packages(exclude=['example', 'docs', 'venv', 'web', 'db']),
-    install_requires=['flask', 'flask_restful', 'markupsafe', 'waitress', 'flask_login'],
+    install_requires=['jinja2'], #['flask', 'flask_restful', 'markupsafe', 'waitress', 'flask_login'],
     entry_points={  # Optional
         'console_scripts': [
             'pyworks=pyworks.cli:commandline',

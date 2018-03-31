@@ -3,7 +3,11 @@ import time
 from socket import socket, AF_INET, SOCK_STREAM
 from select import select
 from threading import Thread
-from queue import Queue, Empty
+
+try:
+    from queue import Queue, Empty
+except ImportError:
+    from Queue import Queue, Empty
 
 from pyworks import Actor
 

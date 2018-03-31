@@ -1,5 +1,8 @@
 import importlib
-from queue import Queue, Empty
+try:
+    from queue import Queue, Empty
+except ImportError:
+    from Queue import Queue, Empty
 
 from threading import Thread
 import sys, time, os, traceback
@@ -504,7 +507,7 @@ class Manager(object):
             stopped = False
             for name, module in self.modules.items():
                 if module.prio == prio:
-                    module.proxy.close()
+                    module.proxy.pw_close()
                     stopped = True
             if stopped:
                 time.sleep(1)  # A little time to settle down
