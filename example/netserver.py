@@ -1,7 +1,7 @@
-from pyworks.net import NetActor, ServerConnection, AsciiProtocol, STXETXProtocol
+from pyworks.net import NetTask, ServerConnection, AsciiProtocol, STXETXProtocol
 
 
-class EchoServerTask(NetActor):
+class EchoServerTask(NetTask):
     def pw_initialized(self):
         address = ('localhost', 5050)
         self.conn = ServerConnection(self.actor(), address, protocol=AsciiProtocol)
@@ -24,7 +24,7 @@ class EchoServerTask(NetActor):
 
     def net_received(self, conn, tlg):
         if self.count % 100 == 0:
-            self.log("Server received: '%s'" % tlg)
+            self.log(">>'%s'" % tlg)
         conn.send('From Server count: %d' % self.count)
         self.count += 1
 

@@ -1,11 +1,11 @@
 from time import time
 
-from pyworks import Actor, FutureShock, Future
+from pyworks import Task, FutureShock, Future
 
 from pyworks.util import settings
 
 
-class ClientActor(Actor) :
+class ClientTask(Task) :
     def pw_timeout(self, n):
         self.ntimeout = n
         self.count = 1
@@ -20,7 +20,7 @@ class ClientActor(Actor) :
 
     def pw_timeout(self):
         self.ntimeout += 1
-        if self.ntimeout % 100 == 0:
+        if self.ntimeout % 10 == 0:
             self.log("timeout: %d" % self.ntimeout)
         if self.ntimeout == 2 or self.ntimeout == 4:
             return
@@ -39,11 +39,11 @@ class ClientActor(Actor) :
             try:
                 self.log("long answer 1 = %d" % future.get_value(2))
             except FutureShock:
-                self.log("Ahh, I gave up waiting for longwork, try a little longer")
+                self.log("Hmm: Gave up waiting for longwork, try a little longer")
                 try:
-                    self.log("long answer 2 = %d" % future.get_value(10))
+                    self.log("Yes: long answer 2 = %d" % future.get_value(10))
                 except FutureShock:
-                    self.log("long answer 3 = %d" % future.get_value())
+                    self.log("Wait: got 3 = %d" % future.get_value())
 
         if self.ntimeout == 5:
             return
@@ -52,9 +52,8 @@ class ClientActor(Actor) :
                 sum = sum + r
             self.log("result = %s" % sum)
 
-    def close(self):
+    def pw_close(self):
         self.log("closing")
-        self.closed()
 
     def worker_done(self, msg):
-        self.log("The worker Actor is done: %s" % msg)
+        self.log("Worker Task done: %s" % msg)

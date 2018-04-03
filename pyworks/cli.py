@@ -10,14 +10,12 @@ parser.add_argument('--create-project', action="store", dest="project",
                     help="Create a pyworks project structure")
 parser.add_argument('--create-subsys', action="store", dest="subsys",
                     help="Create a pyworks sub system")
-parser.add_argument('--create-actor', action="store", dest="actor",
-                    help="Create a new actor module")
 parser.add_argument('--run', '-r', action="store_true", help="run pyworks")
 parser.add_argument('--debug', '-d', action="store_true", help="debug mode")
 
 project_template = Template("""#!/usr/bin/env python
 #
-# pyworks - an Actor Framework
+# pyworks - an Task Framework
 #
 # Copyright (C) __PYLOTS__
 #
@@ -35,23 +33,21 @@ if __name__ == '__main__':
 
 settings_template = Template("""import os
 
-from pyworks.core import actor, subsys
-
 PRODIR = os.path.dirname(os.path.realpath(__file__))
 LOGDIR = os.path.join(PRODIR, 'log')
 
-INSTALLED_ACTORS = [
-    # subsys('somesys'),
-    # actor('someactor', SomeActor)
+SUBSYSTEMS = [
+    # 'somesys',
+    # 'someothersys',
 ]
 
 """)
 
-subsys_template = Template("""from pyworks import Actor
+subsys_template = Template("""from pyworks import Task
 from pyworks.core import actor
 
 
-class {{ target|capitalize }}Actor(Actor):
+class {{ target|capitalize }}Task(Task):
     def pw_initialized(self):
         pass
         
@@ -67,39 +63,16 @@ class {{ target|capitalize }}Actor(Actor):
     def pw_exception(self, method_name):
         pass
         
-    def pw_unimplemented(self, method_name):
+    def pw_invoke(self, method_name):
         pass
         
 
-actors = [
-    actor("{{target}}", {{ target|capitalize }}Actor),
+tasks = [
+    task("{{target}}", {{ target|capitalize }}Task),
 ]
 
 """)
 
-actor_template = Template("""from pyworks import Actor
-
-
-class {{ target|capitalize }}Actor(Actor):
-    def pw_initialized(self):
-        pass
-        
-    def pw_configured(self):
-        pass
-        
-    def pw_started(self):
-        pass
-        
-    def pw_timeout(self):
-        pass
-
-    def pw_exception(self, method_name):
-        pass
-        
-    def pw_unimplemented(self, method_name):
-        pass
-        
-""")
 
 def make_init(path):
     file = "%s/__init__.py" % path
@@ -128,20 +101,9 @@ def create_subsys(target):
         return
     os.makedirs(target)
     make_init(target)
-    path = "%s/actors.py" % target
+    path = "%s/tasks.py" % target
     with open(path, "w") as fd:
         fd.write(subsys_template.render(target=target))
-
-
-def create_actor(target):
-    if os.path.exists(target):
-        print("Actor already exists: %s" % target)
-        return
-    os.makedirs(target)
-    make_init(target)
-    path = "%s/actors.py" % target
-    with open(path, "w") as fd:
-        fd.write(actor_template.render(target=target))
 
 
 FORMAT="%(asctime)s.%(msecs)03d %(levelname)-5s %(message)s"
@@ -153,8 +115,6 @@ def commandline():
         create_project(ns.project)
     elif ns.subsys:
         create_subsys(ns.subsys)
-    elif ns.actor:
-        create_actor(ns.actor)
     elif ns.run:
         from pyworks.util import settings
         logger = logging.getLogger('pyworks')

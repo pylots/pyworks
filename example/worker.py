@@ -1,14 +1,14 @@
-from pyworks import Actor
+from pyworks import Task
 
 
-class WorkerActor(Actor):
+class WorkerTask(Task):
     def pw_initialized(self):
         self.ntimeout = 0
         self.future = None
 
     def hello(self, n, msg):
-        if n % 2345 == 0:
-            size = self._manager.modules[self._name].runner.queue.qsize()
+        if n % 7 == 0:
+            size = self.pw_module().runner.queue.qsize()
             self.log("%02d: worker hello: %s, size=%s" % (n, msg, size))
         return n
 
@@ -18,9 +18,9 @@ class WorkerActor(Actor):
 
     def pw_timeout(self):
         self.ntimeout += 1
-        # self.log("timeout in worker: %d" % self.ntimeout)
-        if self.ntimeout == 4:
-            self.notify.worker_done("good-bye")
+        self.log("timeout(): %d" % self.ntimeout)
+        if self.ntimeout % 3 == 0:
+            self.notify.worker_done("Good work...")
 
         if self.ntimeout == 5:
             self.log('setting value for long_work()....')

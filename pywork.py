@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# pyworks - an Actor Framework
+# pyworks - an Task Framework
 #
 # Copyright (C) __PYLOTS__
 #

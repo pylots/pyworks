@@ -13,7 +13,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='pyworks',
     version='0.8.0',  # Required
-    description='An Actor framework',
+    description='An Task framework',
     long_description=long_description,
     url='https://github.com/pylots/pyworks',
     author='Rene Nejsum, __PYLOTS__',  # Optional

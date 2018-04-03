@@ -8,7 +8,10 @@ from threading import Thread
 import sys, time, os, traceback
 from pyworks import Future, NoFuture
 
+
 pyworks_settings = globals()
+
+
 def load_settings():
     import importlib
 
@@ -19,24 +22,28 @@ def load_settings():
         if setting.isupper():
             var = getattr(mod, setting)
             pyworks_settings[setting] = var
+    return pyworks_settings
 
 
-user_actors = {}
-def actor(name, factory, conf=None, index=None):
-    user_actors[name] = Module(name, conf, factory)
-    if index:
-        user_actors[name].index = index
-    return user_actors[name]
+class Registry(object):
+    tasks = {}
 
-subsystems = []
-def subsys(name):
-    subsystems.append(name)
+    @classmethod
+    def task(cls, name, factory, conf=None, index=None):
+        cls.tasks[name] = Module(name, conf, factory)
+        if index:
+            cls.tasks[name].index = index
+        return cls.tasks[name]
+
+
+register = Registry()
+
 
 def runserver(logger, debug=False):
-    s = load_settings()
+    load_settings()
     m = Manager(logger=logger, debug=debug)
-    m.load_subsys(subsystems)
-    m.load_modules(user_actors)
+    m.load_subsys()
+    m.load_modules(register.tasks)
     m.init_modules()
     m.conf_modules()
     m.run_modules()
@@ -79,16 +86,29 @@ def runserver(logger, debug=False):
 
 class Module(object):
 
-    def __init__(self, name, conf, factory, actor=None, proxy=None, runner=None):
-        self.name, self.conf, self.factory, self.actor, self.proxy, self.runner = name, conf, factory, actor, proxy, runner
+    def __init__(self, name, conf, factory):
+        self.name, self.conf, self.factory = name, conf, factory
+        # Below set by manager during initialization
+        self.actor = None
+        self.proxy = None
+        self.runner = None
         self.index = 0
         self.pid = 0
         self.prio = 5
-        self.listeners = {}
+        self.observers = {}
         self.daemon = 0
+        self.manager = None
+        self.logger = None
 
-    def get_listeners(self):
-        return self.listeners.values()
+    def get_observers(self):
+        return self.observers.values()
+
+    def add_observer(self, actor):
+        name = actor.pw_name()
+        if name in self.observers:
+            self.logger.warning('add_observer(%s): Already observing %s'.format(actor, self.name))
+            return
+        self.observers[name] = {'actor': actor}
 
 
 class InternalFuture(Future):
@@ -281,9 +301,9 @@ class DispatchMethodWrapper(object):
         self.actor, self.method = actor, method
 
     def __call__(self, *args, **kwds):
-        # dispatch to all the listeners
-        for listener in self.actor.pw_observers():
-            listener['actor'].pw_queue().put(
+        # dispatch to all the observers
+        for observer in self.actor.pw_observers():
+            observer['actor'].pw_queue().put(
                 DistributedMethod(self.actor, self.method, NoFuture(), *args, **kwds)
             )
 
@@ -338,14 +358,14 @@ class Runner(Thread):
         while self.state != "Stopping":
             try:
                 self.state = "Ready"
-                m = self.queue.get(timeout=self.actor._timeout)
+                m = self.queue.get(timeout=self.actor._pw_timeout)
                 if self.manager.debug: print("m=%s" % m)
-                if not hasattr(self.actor._state, m.name):
-                    self.manager.logger.warning("%s does not have %s" % (self.actor._state, m.name))
-                    self.actor._state.pw_unimplemented(m.name)
+                if not hasattr(self.actor._pw_state, m.name):
+                    self.manager.logger.warning("%s does not have %s" % (self.actor._pw_state, m.name))
+                    self.actor._pw_state.pw_invoke(m.name)
                     continue
 
-                func = getattr(self.actor._state, m.name)
+                func = getattr(self.actor._pw_state, m.name)
                 self.state = "Working"
                 # print 'from %s, doing: %s' % (m.actor, func)
                 try:
@@ -357,18 +377,18 @@ class Runner(Thread):
                         "funccall %s failed: %s (%s)" %
                         (m.name, sys.exc_info()[1], traceback.format_exc()),
                     )
-                    self.actor._state.pw_exception(m.name)
+                    self.actor._pw_state.pw_exception(m.name)
             except Empty:
                 if self.state == "Ready":
                     try:
-                        self.actor._state.pw_timeout()
+                        self.actor._pw_state.pw_timeout()
                     except:
                         self.manager.log(
                             self.actor,
                             "timeout %s failed: %s (%s)" %
                             (m.name, sys.exc_info()[1], traceback.format_exc()),
                         )
-                        self.actor._state.pw_exception(m.name)
+                        self.actor._pw_state.pw_exception(m.name)
         self.state = "Stopped"
 
 
@@ -420,28 +440,33 @@ class Manager(object):
     def log(self, actor, msg):
         if self.state is not "Running":
             return
-        msg = "%s: %s" % (actor._name, msg)
+        msg = "%s: %s" % (actor.pw_name(), msg)
         self.logger.info(msg)
 
     def get_logger(self):
         return self.logger
 
     def error(self, actor, msg):
-        self.logger.error("%s: %s" % (actor._name, msg))
+        self.logger.error("%s: %s" % (actor.pw_name(), msg))
 
-    def load_subsys(self, subsystems):
-        for subsys in subsystems:
+    def load_subsys(self):
+        if not 'SUBSYSTEMS' in pyworks_settings:
+            self.logger.warning('SUBSYSTEMS missing from settings')
+            return
+        for subsys in pyworks_settings['SUBSYSTEMS']:
             if self.debug: print("Load subsys: %s" % subsys)
-            mod = importlib.import_module('%s.actors' % subsys)
+            mod = importlib.import_module('%s.tasks' % subsys)
 
     def load_modules(self, actor_list, daemon=0):
         self.state = "Loading"
         index = 0
         for name, module in actor_list.items():
             if self.debug: print("Load: %s" % name)
+            module.manager = self
+            module.logger = self.logger
             module.name = name
-            module.actor = module.factory(module, self)
-            module.actor._dispatch = Dispatcher(module.actor)
+            module.actor = module.factory(module)
+            module.actor._pw_dispatch = Dispatcher(module.actor)
             module.runner = Runner(self, module)
             module.runner.daemon = daemon
             module.proxy = Proxy(module.runner, module.name)
@@ -452,7 +477,7 @@ class Manager(object):
             self.modules[name] = module
             index += 1
             Manager.pid += 1
-        # Every time loadModules is called it is Actor's with lower prio
+        # Every time loadModules is called it is Task's with lower prio
         self.prio += 1
         self.state = "Loaded prio: %d" % self.prio
 
@@ -525,7 +550,7 @@ class Manager(object):
 
     def dump_modules(self):
         template = "{0}\t{1}\t{2}\t{3}"
-        print(template.format("Actor", "State", "Queue", "Conf"))
+        print(template.format("Task", "State", "Queue", "Conf"))
         for name, module in list(self.modules.items()):
             print(
                 template.format(name, module.runner.state, module.runner.queue.qsize(), module.conf)
@@ -540,5 +565,5 @@ class Manager(object):
     def get_module(self, name):
         if name in self.modules:
             return self.modules[name]
-
+        self.logger.debug("get_module(%s): No such module")
         return None

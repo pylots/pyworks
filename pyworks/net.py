@@ -9,7 +9,7 @@ try:
 except ImportError:
     from Queue import Queue, Empty
 
-from pyworks import Actor
+from pyworks import Task
 
 
 class Protocol(object):
@@ -220,7 +220,7 @@ class ClientConnection(Connection):
         return True
 
 
-class NetActor(Actor):
+class NetTask(Task):
 
     def net_ready(self, address):
         pass

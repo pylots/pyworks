@@ -2,7 +2,7 @@ import os
 login_manager = None
 import threading
 
-from pyworks import Actor
+from pyworks import Task
 from pyworks.core import ManagerManager
 from pyworks.util import settings
 from waitress import serve
@@ -10,11 +10,11 @@ from web.views import app, init_db
 from web.websocketserver import WebSocketServer, WebSocket
 
 
-class WebServer(Actor):
+class WebServer(Task):
 
     def pw_initialized(self):
         app.config.update(dict(
-            PYWORKS=self._manager,
+            PYWORKS=self._pw_manager,
             DATABASE=os.path.join(settings.PRODIR, 'db', 'pyworks.db'),
             DEBUG=True,
             SECRET_KEY="IWKbfXW2UdK/WFVvmMQ96fKtKwFNs0WqDmYyyC3Wm0y5x7SKOCkcXYdF7aWqX51"
@@ -25,7 +25,7 @@ class WebServer(Actor):
         serve(app, host='0.0.0.0', port=5000)
 
 
-class TestActor(Actor):
+class TestTask(Task):
 
     def pw_initialized(self):
         self.n = 0
@@ -61,7 +61,7 @@ class WsHandler(WebSocket):
         self.ws.message(self.data)
 
 
-class SocketServer(Actor):
+class SocketServer(Task):
 
     def pw_initialized(self):
         self.clients = []

@@ -1,7 +1,7 @@
-from pyworks.net import NetActor, ClientConnection, AsciiProtocol, STXETXProtocol
+from pyworks.net import NetTask, ClientConnection, AsciiProtocol, STXETXProtocol
 
 
-class EchoClientTask(NetActor):
+class EchoClientTask(NetTask):
     def pw_initialized(self):
         self.client = None
         self.count = 0

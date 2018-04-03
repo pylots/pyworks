@@ -1,10 +1,10 @@
-from pyworks import Actor
+from pyworks import Task
 
 from time import time
 
-class RingActor(Actor) :
+class RingActor(Task) :
     """
-    Send messages to next Actor in Ring
+    Send messages to next Task in Ring
     """
     def pw_initialized(self):
         self.count = 1

@@ -175,7 +175,7 @@ def actors():
                 qsize=module.runner.queue.qsize(),
                 prio=module.prio,
                 index=module.index,
-                state=module.actor._state.__class__.__name__,
+                state=module.actor._pw_state.__class__.__name__,
                 pid=module.pid,
             )
         )
