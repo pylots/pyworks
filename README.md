@@ -16,6 +16,12 @@ understand and generally performs very well.
 Python. Inspired by Donovan Preston's (@donovanpreston) talk at Pycon 2010
 about his implementation of Task's in Python I decided to try my self.
 
+  Pyworks implements two types of concurrent classes: Actor and Task. Actor
+is a simple concurrent class and Task is a specialized form of Actor. Actor
+has a few simple methods: actor, timeout, notify and observe. Task is more
+complex supporting State pattern and methods for controlled startup sequence,
+configuration etc.
+
   It is a simple as it gets. Subclasses of Task run in their own thread.
 Task's can access each other by calling self.actor("SomeActor") to get
 a Proxy for that Task. You can call all methods on the other Task. The Method
@@ -34,7 +40,7 @@ Methods. This means that States in Task are very easy to implement.
 only.
 
 run test test program by simply doing:
-$ python pywork.py
+$ python pywork.py --run
 
 Works on python3
 

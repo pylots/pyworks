@@ -169,7 +169,7 @@ class State(Actor):
 
     def pw_close(self):
         pass
-    
+
     def pw_set_timeout(self, t):
         self._pw_timeout = t
 
