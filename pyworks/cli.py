@@ -6,14 +6,20 @@ import logging
 
 parser = argparse.ArgumentParser(description='Example with non-optional arguments')
 
-parser.add_argument('--create-project', action="store", dest="project",
-                    help="Create a pyworks project structure")
-parser.add_argument('--create-subsys', action="store", dest="subsys",
-                    help="Create a pyworks sub system")
+parser.add_argument(
+    '--create-project',
+    action="store",
+    dest="project",
+    help="Create a pyworks project structure",
+)
+parser.add_argument(
+    '--create-subsys', action="store", dest="subsys", help="Create a pyworks sub system"
+)
 parser.add_argument('--run', '-r', action="store_true", help="run pyworks")
 parser.add_argument('--debug', '-d', action="store_true", help="debug mode")
 
-project_template = Template("""#!/usr/bin/env python
+project_template = Template(
+    """#!/usr/bin/env python
 #
 # pyworks - an Task Framework
 #
@@ -29,9 +35,11 @@ if __name__ == '__main__':
 
     commandline()
 
-""")
+"""
+)
 
-settings_template = Template("""import os
+settings_template = Template(
+    """import os
 
 PRODIR = os.path.dirname(os.path.realpath(__file__))
 LOGDIR = os.path.join(PRODIR, 'log')
@@ -41,9 +49,11 @@ SUBSYSTEMS = [
     # 'someothersys',
 ]
 
-""")
+"""
+)
 
-subsys_template = Template("""from pyworks import Task
+subsys_template = Template(
+    """from pyworks import Task
 from pyworks.core import actor
 
 
@@ -71,7 +81,8 @@ tasks = [
     task("{{target}}", {{ target|capitalize }}Task),
 ]
 
-""")
+"""
+)
 
 
 def make_init(path):
@@ -79,10 +90,12 @@ def make_init(path):
     with open(file, "w") as fd:
         pass
 
+
 def create_project(target):
     if os.path.exists(target):
         print("Already exists: %s" % target)
         return
+
     os.makedirs(target)
     path = "%s/pywork.py" % target
     with open(path, "w") as fd:
@@ -99,6 +112,7 @@ def create_subsys(target):
     if os.path.exists(target):
         print("Already exists: %s" % target)
         return
+
     os.makedirs(target)
     make_init(target)
     path = "%s/tasks.py" % target
@@ -106,7 +120,7 @@ def create_subsys(target):
         fd.write(subsys_template.render(target=target))
 
 
-FORMAT="%(asctime)s.%(msecs)03d %(levelname)-5s %(message)s"
+FORMAT = "%(asctime)s.%(msecs)03d %(levelname)-5s %(message)s"
 
 
 def commandline():
@@ -117,10 +131,15 @@ def commandline():
         create_subsys(ns.subsys)
     elif ns.run:
         from pyworks.util import settings
+
         logger = logging.getLogger('pyworks')
         level = logging.INFO
-        if settings.DEBUG: level = logging.DEBUG
-        logging.basicConfig(filename=os.path.join(settings.LOGDIR, 'pyworks.log'),
-                            format=FORMAT, datefmt='%y%m%d %H%M%S',
-                            level=level)
+        if settings.DEBUG:
+            level = logging.DEBUG
+        logging.basicConfig(
+            filename=os.path.join(settings.LOGDIR, 'pyworks.log'),
+            format=FORMAT,
+            datefmt='%y%m%d %H%M%S',
+            level=level,
+        )
         runserver(logger, ns.debug)

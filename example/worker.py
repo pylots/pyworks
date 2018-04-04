@@ -3,6 +3,7 @@ from pyworks import Task
 
 
 class WorkerTask(Task):
+
     def pw_initialized(self):
         self.ntimeout = 0
         self.future = None

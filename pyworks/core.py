@@ -1,4 +1,5 @@
 import importlib
+
 try:
     from queue import Queue, Empty
 except ImportError:
@@ -111,8 +112,11 @@ class Process(object):
     def add_observer(self, actor):
         name = actor.pw_name()
         if name in self.observers:
-            self.logger.warning('add_observer(%s): Already observing %s'.format(actor, self.name))
+            self.logger.warning(
+                'add_observer(%s): Already observing %s'.format(actor, self.name)
+            )
             return
+
         self.observers[name] = {'actor': actor}
 
 
@@ -332,6 +336,7 @@ class Dispatcher(object):
     def __getattribute__(self, name):
         if name.startswith('_'):
             return object.__getattribute__(self, name)
+
         else:
             return DispatchMethodWrapper(self._actor, name)
 
@@ -344,6 +349,7 @@ class Proxy(object):
     def __getattribute__(self, name):
         if name.startswith('_'):
             return object.__getattribute__(self, name)
+
         else:
             return ProxyMethodWrapper(self._name, self._runner.queue, name)
 
@@ -373,15 +379,20 @@ class Runner(Thread):
                     if isinstance(actor, Task):
                         actor.pw_invoke(m.name)
                     else:
-                        self.manager.logger.warning("%s does not have %s" % (self.actor._pw_state, m.name))
+                        self.manager.logger.warning(
+                            "%s does not have %s" % (self.actor._pw_state, m.name)
+                        )
                     continue
+
                 func = getattr(actor, m.name)
                 self.state = "Working"
                 # print 'from %s, doing: %s' % (m.actor, func)
                 try:
                     m.future.set_value(func(*m.args, **m.kwds))
                 except:
-                    self.manager.logger.warning('Exception: %s %s' % (m.name, sys.exc_info()[1]))
+                    self.manager.logger.warning(
+                        'Exception: %s %s' % (m.name, sys.exc_info()[1])
+                    )
                     self.manager.log(
                         self.actor,
                         "funccall %s failed: %s (%s)" %
@@ -450,6 +461,7 @@ class Manager(object):
     def log(self, actor, msg):
         if self.state is not "Running":
             return
+
         msg = "%s: %s" % (actor.pw_name(), msg)
         self.logger.info(msg)
 
@@ -463,6 +475,7 @@ class Manager(object):
         if not 'SUBSYSTEMS' in pyworks_settings:
             self.logger.warning('SUBSYSTEMS missing from settings')
             return
+
         for subsys in pyworks_settings['SUBSYSTEMS']:
             self.logger.debug("Load subsys: %s" % subsys)
             mod = importlib.import_module('%s.tasks' % subsys)
@@ -495,7 +508,8 @@ class Manager(object):
     def init_processes(self):
         self.state = "Initializing"
         for name, process in self.processes.items():
-            if process.is_task: process.actor.pw_initialized()
+            if process.is_task:
+                process.actor.pw_initialized()
         self.log(self, "All actors initialized")
         self.state = "Initialized"
 
@@ -510,8 +524,11 @@ class Manager(object):
                         code = compile(f.read(), process.conf, 'exec')
                         exec(code, {'actor': process.actor})
                     else:
-                        self.logger.warning('conf_processes(): %s could not be read' % process.conf)
-                if process.is_task: process.actor._pw_state.pw_configured()
+                        self.logger.warning(
+                            'conf_processes(): %s could not be read' % process.conf
+                        )
+                if process.is_task:
+                    process.actor._pw_state.pw_configured()
             prio += 1
         self.state = "Configured"
         self.logger.debug("Configured")
@@ -523,7 +540,8 @@ class Manager(object):
             for name, process in self.processes.items():
                 if process.prio == prio:
                     process.runner.start()
-                    if process.is_task: process.proxy.pw_started()
+                    if process.is_task:
+                        process.proxy.pw_started()
                     self.log(process.actor, "%d: Starting runner: %s" % (prio, name))
             prio += 1
         self.state = "Running"
@@ -558,7 +576,12 @@ class Manager(object):
         print(template.format("Task", "State", "Queue", "Conf"))
         for name, process in list(self.processes.items()):
             print(
-                template.format(name, process.runner.state, process.runner.queue.qsize(), process.conf)
+                template.format(
+                    name,
+                    process.runner.state,
+                    process.runner.queue.qsize(),
+                    process.conf,
+                )
             )
 
     def get_actor(self, actor):
@@ -570,5 +593,6 @@ class Manager(object):
     def get_process(self, name):
         if name in self.processes:
             return self.processes[name]
+
         self.logger.debug("get_process(%s): No such process")
         return None

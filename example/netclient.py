@@ -2,6 +2,7 @@ from pyworks.net import NetTask, ClientConnection, AsciiProtocol, STXETXProtocol
 
 
 class EchoClientTask(NetTask):
+
     def pw_initialized(self):
         self.client = None
         self.count = 0
@@ -15,9 +16,10 @@ class EchoClientTask(NetTask):
         if self.conn is not None:
             self.log("Connection already UP!")
             return
+
         self.conn = ClientConnection(self.actor(), address, protocol=AsciiProtocol)
         self.conn.connect()
-        
+
     def net_up(self, conn, level):
         self.log('Client up: %d, %s' % (level, conn.address))
 
@@ -26,7 +28,8 @@ class EchoClientTask(NetTask):
 
     def net_received(self, conn, tlg):
         self.log("Client received: '%s'" % tlg)
-        # conn.send("Right back at you")
+
+    # conn.send("Right back at you")
 
     def net_timeout(self, conn):
         self.log('Client: net_timeout: %s:%s' % (conn.address))

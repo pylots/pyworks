@@ -12,6 +12,7 @@ api = Api(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+
 class User(object):
 
     def __init__(self, *args, **kw):
@@ -93,6 +94,7 @@ userlist = [
 def load_user(userid):
     return User.get(userid)
 
+
 def connect_db():
     """Connects to the specific database."""
     rv = sqlite3.connect(app.config['DATABASE'])
@@ -118,12 +120,12 @@ def get_db():
     return g.sqlite_db
 
 
-
 @app.teardown_appcontext
 def close_db(error):
     """Closes the database again at the end of the request."""
     if hasattr(g, 'sqlite_db'):
         g.sqlite_db.close()
+
 
 @app.context_processor
 def inject_user():

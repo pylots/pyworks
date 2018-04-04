@@ -1,5 +1,6 @@
 import sys
 import logging
+
 try:
     from queue import Queue, Empty
 except ImportError:
@@ -40,6 +41,7 @@ class Future(object):
     def set_value(self, value):
         if self.has_value:
             raise Exception("Trying to set_value more than once")
+
         self.queue.put(value)
 
     def get_value(self, timeout=Ellipsis):
@@ -73,6 +75,7 @@ class Future(object):
 
 
 class Actor(object):
+
     def __init__(self, process):
         self._pw_process = process
         self._pw_manager = process.manager
@@ -98,6 +101,7 @@ class Actor(object):
         """
         if not name:
             return self._pw_process.proxy
+
         return self._pw_manager.get_actor(name)
 
     @property
@@ -120,8 +124,8 @@ class Actor(object):
         self._pw_manager.get_process(name).add_observer(self)
 
 
-
 class State(Actor):
+
     def __init__(self, process):
         super().__init__(process)
         self._pw_timeout = 5
@@ -182,6 +186,7 @@ class State(Actor):
         return self._pw_process.actor._pw_state
 
     # State handling methods
+
     def state_leave(self):
         pass
 

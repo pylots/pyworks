@@ -17,5 +17,6 @@ register.task("netclient", EchoClientTask)
 register.actor('math', MathActor)
 
 from example.ring import RingActor
+
 for r in range(100):
     register.task("ring%d" % r, RingActor, index=r, conf="example/conf/ring.py")

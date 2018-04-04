@@ -6,6 +6,7 @@ logger = logging.getLogger(__file__)
 
 
 class MathActor(Actor):
+
     def factorial(self, n):
         logger.debug("factorial(%d)" % n)
         i = n

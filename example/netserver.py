@@ -2,6 +2,7 @@ from pyworks.net import NetTask, ServerConnection, AsciiProtocol, STXETXProtocol
 
 
 class EchoServerTask(NetTask):
+
     def pw_initialized(self):
         address = ('localhost', 5050)
         self.conn = ServerConnection(self.actor(), address, protocol=AsciiProtocol)

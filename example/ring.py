@@ -2,14 +2,16 @@ from pyworks import Task
 
 from time import time
 
-class RingActor(Task) :
+
+class RingActor(Task):
     """
     Send messages to next Task in Ring
     """
+
     def pw_initialized(self):
         self.count = 1
         self.n = self.pw_index() + 1
-        if self.pw_index() >= 99 :
+        if self.pw_index() >= 99:
             self.n = 0
         self.log("%s: ring%d->ring%d" % (self.pw_name(), self.pw_index(), self.n))
         self.next = self.actor("ring%d" % self.n)

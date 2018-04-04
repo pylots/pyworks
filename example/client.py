@@ -5,7 +5,8 @@ from pyworks import Task, FutureShock, Future
 from pyworks.util import settings
 
 
-class ClientTask(Task) :
+class ClientTask(Task):
+
     def pw_timeout(self, n):
         self.ntimeout = n
         self.count = 1
@@ -24,10 +25,13 @@ class ClientTask(Task) :
             self.log("timeout: %d" % self.ntimeout)
         if self.ntimeout == 2 or self.ntimeout == 4:
             return
+
             start = time()
             n = self.count * self.ntimeout
             for i in range(n):
-                a = self.worker.hello(i, "hello, from %s: %d" % (self.pw_name(), self.ntimeout))
+                a = self.worker.hello(
+                    i, "hello, from %s: %d" % (self.pw_name(), self.ntimeout)
+                )
                 self.answers.append(a)
             t = time() - start
             self.log("%.0f msg/sec" % (float(n) / t))
@@ -47,6 +51,7 @@ class ClientTask(Task) :
 
         if self.ntimeout == 5:
             return
+
             sum = 0
             for r in self.answers:
                 sum = sum + r

@@ -1,4 +1,5 @@
 import os
+
 login_manager = None
 import threading
 
@@ -13,12 +14,14 @@ from web.websocketserver import WebSocketServer, WebSocket
 class WebServer(Task):
 
     def pw_initialized(self):
-        app.config.update(dict(
-            PYWORKS=self._pw_manager,
-            DATABASE=os.path.join(settings.PRODIR, 'db', 'pyworks.db'),
-            DEBUG=True,
-            SECRET_KEY="IWKbfXW2UdK/WFVvmMQ96fKtKwFNs0WqDmYyyC3Wm0y5x7SKOCkcXYdF7aWqX51"
-        ))
+        app.config.update(
+            dict(
+                PYWORKS=self._pw_manager,
+                DATABASE=os.path.join(settings.PRODIR, 'db', 'pyworks.db'),
+                DEBUG=True,
+                SECRET_KEY="IWKbfXW2UdK/WFVvmMQ96fKtKwFNs0WqDmYyyC3Wm0y5x7SKOCkcXYdF7aWqX51",
+            )
+        )
         init_db()
 
     def pw_started(self):
@@ -45,6 +48,7 @@ class TestTask(Task):
 
 
 class WsHandler(WebSocket):
+
     def __init__(self, server, sock, address):
         self.ws = None
         super().__init__(server, sock, address)

@@ -2,19 +2,23 @@ from pyworks import Task, State
 
 
 class BaseState(State):
+
     def pw_timeout(self):
         self.log("Timeout")
 
     def worker_done(self, msg):
         self.log("worker_done(): Wrong state: %s" % self)
 
+
 class InitialState(BaseState):
+
     def pw_timeout(self):
         self.log("timeout(): Going to TimeoutState")
         self.state_set(TimeoutState)
 
 
 class TimeoutState(BaseState):
+
     def pw_timeout(self):
         # self.log("timeout in TimeoutState")
         pass
