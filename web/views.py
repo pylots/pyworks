@@ -167,7 +167,7 @@ def edit_user(user):
 def actors():
     manager = app.config['PYWORKS']
     actors = []
-    for module in manager.get_modules():
+    for module in manager.get_processes():
         actors.append(
             dict(
                 name=module.name,
@@ -175,7 +175,7 @@ def actors():
                 qsize=module.runner.queue.qsize(),
                 prio=module.prio,
                 index=module.index,
-                state=module.actor._pw_state.__class__.__name__,
+                state=module.actor.pw_state().__class__.__name__,
                 pid=module.pid,
             )
         )
@@ -186,7 +186,7 @@ def actors():
 def show_actor(name):
     print('actor %s' % name)
     manager = app.config['PYWORKS']
-    module = manager.pw_module(name)
+    module = manager.pw_process(name)
     return render_template('show_actor.html', module=module)
 
 
@@ -216,7 +216,7 @@ class RestTest(Resource):
     def get(self):
         manager = app.config['PYWORKS']
         actors = {}
-        for module in manager.get_modules():
+        for module in manager.get_processes():
             actors[module.name] = module.actor.__class__.__name__
         return actors
 

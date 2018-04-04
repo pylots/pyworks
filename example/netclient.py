@@ -25,8 +25,8 @@ class EchoClientTask(NetTask):
         self.log('Client down: %d, %s' % (level, conn.address))
 
     def net_received(self, conn, tlg):
-        # self.log("Client received: '%s'" % tlg)
-        conn.send("Right back at you")
+        self.log("Client received: '%s'" % tlg)
+        # conn.send("Right back at you")
 
     def net_timeout(self, conn):
         self.log('Client: net_timeout: %s:%s' % (conn.address))

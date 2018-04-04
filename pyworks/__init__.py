@@ -73,15 +73,21 @@ class Future(object):
 
 
 class Actor(object):
-    def __init__(self, module):
-        self._pw_module = module
-        self._pw_manager = module.manager
+    def __init__(self, process):
+        self._pw_process = process
+        self._pw_manager = process.manager
 
     def __str__(self):
-        return "%s:%d" % (self._pw_module.name, self._pw_module.index)
+        return "%s:%d" % (self._pw_process.name, self._pw_process.index)
 
     def log(self, msg, *args, **kwargs):
-        self._pw_module.logger.info("[%s] %s" % (self, msg), *args, **kwargs)
+        self._pw_process.logger.info("[%s] %s" % (self, msg), *args, **kwargs)
+
+    def pw_state(self):
+        return self
+
+    def pw_name(self):
+        return self._pw_process.name
 
     def actor(self, name=None):
         """
@@ -91,7 +97,7 @@ class Actor(object):
         :return: An Async proxy to the Task
         """
         if not name:
-            return self._pw_module.proxy
+            return self._pw_process.proxy
         return self._pw_manager.get_actor(name)
 
     @property
@@ -111,13 +117,13 @@ class Actor(object):
         :param name: Name of Task to observe
         :return:
         """
-        self._pw_manager.get_module(name).add_observer(self)
+        self._pw_manager.get_process(name).add_observer(self)
 
 
 
 class State(Actor):
-    def __init__(self, module):
-        super().__init__(module)
+    def __init__(self, process):
+        super().__init__(process)
         self._pw_timeout = 5
 
     def __str__(self):
@@ -125,29 +131,28 @@ class State(Actor):
 
     @property
     def task(self):
-        return self.pw_module().actor
+        return self.pw_process().actor
 
-    def pw_module(self):
-        return self._pw_module
-        # return self._pw_manager.modules[self._pw_module.name]
+    def pw_process(self):
+        return self._pw_process
 
     def pw_queue(self):
-        return self._pw_module.runner.queue
+        return self._pw_process.runner.queue
 
     def pw_observers(self):
-        return self.pw_module().get_observers()
+        return self.pw_process().get_observers()
 
     def pw_name(self):
-        return self._pw_module.name
+        return self._pw_process.name
 
     def pw_manager(self):
         return self._pw_manager
 
     def pw_pid(self):
-        return self._pw_module.pid
+        return self._pw_process.pid
 
     def pw_index(self):
-        return self._pw_module.index
+        return self._pw_process.index
 
     def pw_initialized(self):
         pass
@@ -173,6 +178,9 @@ class State(Actor):
     def pw_set_timeout(self, t):
         self._pw_timeout = t
 
+    def pw_state(self):
+        return self._pw_process.actor._pw_state
+
     # State handling methods
     def state_leave(self):
         pass
@@ -181,17 +189,17 @@ class State(Actor):
         pass
 
     def state_set(self, state):
-        self._pw_module.actor._pw_state.state_leave()
-        self._pw_module.actor._pw_state = state(self._pw_module)
-        self._pw_module.actor._pw_state.state_enter()
+        self._pw_process.actor._pw_state.state_leave()
+        self._pw_process.actor._pw_state = state(self._pw_process)
+        self._pw_process.actor._pw_state.state_enter()
 
 
 class Task(State):
 
-    def __init__(self, module):
-        super().__init__(module)
+    def __init__(self, process):
+        super().__init__(process)
         self._pw_state = self
 
     def state_set(self, state):
-        self._pw_state = state(self._pw_module)
+        self._pw_state = state(self._pw_process)
         self._pw_state.state_enter()

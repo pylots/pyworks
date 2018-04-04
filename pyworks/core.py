@@ -6,7 +6,7 @@ except ImportError:
 
 from threading import Thread
 import sys, time, os, traceback
-from pyworks import Future, NoFuture
+from pyworks import Future, NoFuture, Actor, Task
 
 
 pyworks_settings = globals()
@@ -30,9 +30,14 @@ class Registry(object):
 
     @classmethod
     def task(cls, name, factory, conf=None, index=None):
-        cls.tasks[name] = Module(name, conf, factory)
+        cls.tasks[name] = Process(name, factory, conf)
         if index:
             cls.tasks[name].index = index
+        return cls.tasks[name]
+
+    @classmethod
+    def actor(cls, name, factory):
+        cls.tasks[name] = Process(name, factory)
         return cls.tasks[name]
 
 
@@ -43,13 +48,13 @@ def runserver(logger, debug=False):
     load_settings()
     m = Manager(logger=logger, debug=debug)
     m.load_subsys()
-    m.load_modules(register.tasks)
-    m.init_modules()
-    m.conf_modules()
-    m.run_modules()
+    m.load_processes(register.tasks)
+    m.init_processes()
+    m.conf_processes()
+    m.run_processes()
 
-    for module in m.get_modules():
-        exec("%s=module.proxy" % (module.name))
+    for process in m.get_processes():
+        exec("%s=process.proxy" % (process.name))
 
     prompt = ">>"
     running = True
@@ -65,7 +70,7 @@ def runserver(logger, debug=False):
             continue
 
         if line == "dump":
-            m.dump_modules()
+            m.dump_processes()
             continue
 
         try:
@@ -75,19 +80,19 @@ def runserver(logger, debug=False):
             print("%s" % sys.exc_info()[1])
             prompt = "?>>"
 
-    m.close_modules()
+    m.close_processes()
     m.shutdown()
 
     # wait for all to close
-    for name, module in m.modules.items():
-        if not module.daemon:
-            module.runner.join()
+    for name, process in m.processes.items():
+        if not process.daemon:
+            process.runner.join()
 
 
-class Module(object):
+class Process(object):
 
-    def __init__(self, name, conf, factory):
-        self.name, self.conf, self.factory = name, conf, factory
+    def __init__(self, name, factory, conf=None):
+        self.name, self.factory, self.conf = name, factory, conf
         # Below set by manager during initialization
         self.actor = None
         self.proxy = None
@@ -345,9 +350,9 @@ class Proxy(object):
 
 class Runner(Thread):
 
-    def __init__(self, manager, module):
-        Thread.__init__(self, name=module.name)
-        self.manager, self.module, self.name, self.actor = manager, module, module.name, module.actor
+    def __init__(self, manager, process):
+        Thread.__init__(self, name=process.name)
+        self.manager, self.process, self.name, self.actor = manager, process, process.name, process.actor
         self.queue = Queue()
         self.state = "Init"
 
@@ -358,14 +363,19 @@ class Runner(Thread):
         while self.state != "Stopping":
             try:
                 self.state = "Ready"
-                m = self.queue.get(timeout=self.actor._pw_timeout)
-                if self.manager.debug: print("m=%s" % m)
-                if not hasattr(self.actor._pw_state, m.name):
-                    self.manager.logger.warning("%s does not have %s" % (self.actor._pw_state, m.name))
-                    self.actor._pw_state.pw_invoke(m.name)
+                actor = self.actor
+                timeout = None
+                if isinstance(actor, Task):
+                    actor = self.actor._pw_state
+                    timeout = actor._pw_timeout
+                m = self.queue.get(timeout=timeout)
+                if not hasattr(actor, m.name):
+                    if isinstance(actor, Task):
+                        actor.pw_invoke(m.name)
+                    else:
+                        self.manager.logger.warning("%s does not have %s" % (self.actor._pw_state, m.name))
                     continue
-
-                func = getattr(self.actor._pw_state, m.name)
+                func = getattr(actor, m.name)
                 self.state = "Working"
                 # print 'from %s, doing: %s' % (m.actor, func)
                 try:
@@ -377,18 +387,18 @@ class Runner(Thread):
                         "funccall %s failed: %s (%s)" %
                         (m.name, sys.exc_info()[1], traceback.format_exc()),
                     )
-                    self.actor._pw_state.pw_exception(m.name)
+                    actor.pw_exception(m.name)
             except Empty:
-                if self.state == "Ready":
+                if self.state == "Ready" and isinstance(actor, Task):
                     try:
-                        self.actor._pw_state.pw_timeout()
+                        actor.pw_timeout()
                     except:
                         self.manager.log(
                             self.actor,
                             "timeout %s failed: %s (%s)" %
                             (m.name, sys.exc_info()[1], traceback.format_exc()),
                         )
-                        self.actor._pw_state.pw_exception(m.name)
+                        actor.pw_exception(m.name)
         self.state = "Stopped"
 
 
@@ -429,7 +439,7 @@ class Manager(object):
 
     def __init__(self, env="pyworks", logger=PrintLogger(), debug=False):
         self.env = env
-        self.modules = {}
+        self.processes = {}
         self.prio = 0
         self.name = "Manager"
         self.state = "Initial"
@@ -454,85 +464,80 @@ class Manager(object):
             self.logger.warning('SUBSYSTEMS missing from settings')
             return
         for subsys in pyworks_settings['SUBSYSTEMS']:
-            if self.debug: print("Load subsys: %s" % subsys)
+            self.logger.debug("Load subsys: %s" % subsys)
             mod = importlib.import_module('%s.tasks' % subsys)
 
-    def load_modules(self, actor_list, daemon=0):
+    def load_processes(self, actor_list, daemon=0):
         self.state = "Loading"
         index = 0
-        for name, module in actor_list.items():
-            if self.debug: print("Load: %s" % name)
-            module.manager = self
-            module.logger = self.logger
-            module.name = name
-            module.actor = module.factory(module)
-            module.actor._pw_dispatch = Dispatcher(module.actor)
-            module.runner = Runner(self, module)
-            module.runner.daemon = daemon
-            module.proxy = Proxy(module.runner, module.name)
-            module.prio = self.prio
-            module.index = index
-            module.pid = Manager.pid
-            module.daemon = daemon
-            self.modules[name] = module
+        for name, process in actor_list.items():
+            self.logger.debug("load_process: %s" % name)
+            process.manager = self
+            process.logger = self.logger
+            process.name = name
+            process.actor = process.factory(process)
+            process.is_task = isinstance(process.actor, Task)
+            process.actor._pw_dispatch = Dispatcher(process.actor)
+            process.runner = Runner(self, process)
+            process.runner.daemon = daemon
+            process.proxy = Proxy(process.runner, process.name)
+            process.prio = self.prio
+            process.index = index
+            process.pid = Manager.pid
+            process.daemon = daemon
+            self.processes[name] = process
             index += 1
             Manager.pid += 1
-        # Every time loadModules is called it is Task's with lower prio
+        # Every time load_processes is called it is Task's with lower prio
         self.prio += 1
         self.state = "Loaded prio: %d" % self.prio
 
-    def init_modules(self):
+    def init_processes(self):
         self.state = "Initializing"
-        for name, module in self.modules.items():
-            module.actor.pw_initialized()
+        for name, process in self.processes.items():
+            if process.is_task: process.actor.pw_initialized()
         self.log(self, "All actors initialized")
         self.state = "Initialized"
 
-    def conf_modules(self):
+    def conf_processes(self):
         self.state = "Configuration"
         prio = 0
         while prio < self.prio:
-            for name, module in self.modules.items():
-                if module.prio == prio:
-                    filename = 'conf/%s.py' % self.env
-                    if os.access(filename, os.R_OK):
-                        f = open(filename)
-                        code = compile(f.read(), filename, 'exec')
-                        exec(code, {'actor': module.actor})
-                    if module.conf:
-                        if os.access(module.conf, os.R_OK):
-                            f = open(module.conf)
-                            code = compile(f.read(), module.conf, 'exec')
-                            exec(code, {'actor': module.actor})
-                        else:
-                            self.logger.warning('%s could not be read' % module.conf)
-                    module.actor.pw_configured()
+            for name, process in self.processes.items():
+                if process.prio == prio and process.conf:
+                    if os.access(process.conf, os.R_OK):
+                        f = open(process.conf)
+                        code = compile(f.read(), process.conf, 'exec')
+                        exec(code, {'actor': process.actor})
+                    else:
+                        self.logger.warning('conf_processes(): %s could not be read' % process.conf)
+                if process.is_task: process.actor._pw_state.pw_configured()
             prio += 1
         self.state = "Configured"
-        if self.debug: print("Configured")
+        self.logger.debug("Configured")
 
-    def run_modules(self):
+    def run_processes(self):
         self.state = "Starting"
         prio = 0
         while prio < self.prio:
-            for name, module in self.modules.items():
-                if module.prio == prio:
-                    module.runner.start()
-                    module.proxy.pw_started()
-                    self.log(module.actor, "%d: Starting runner: %s" % (prio, name))
+            for name, process in self.processes.items():
+                if process.prio == prio:
+                    process.runner.start()
+                    if process.is_task: process.proxy.pw_started()
+                    self.log(process.actor, "%d: Starting runner: %s" % (prio, name))
             prio += 1
         self.state = "Running"
-        if self.debug: print("Running")
+        self.logger.debug("Running")
 
-    def close_modules(self):
+    def close_processes(self):
         self.state = "Closing"
         prio = self.prio
         while prio >= 1:
             prio -= 1
             stopped = False
-            for name, module in self.modules.items():
-                if module.prio == prio:
-                    module.proxy.pw_close()
+            for name, process in self.processes.items():
+                if process.prio == prio and process.is_task:
+                    process.proxy.pw_close()
                     stopped = True
             if stopped:
                 time.sleep(1)  # A little time to settle down
@@ -543,27 +548,27 @@ class Manager(object):
         while self.prio > 0:
             self.prio -= 1
             self.log(self, "Shutdown level %d" % self.prio)
-            for name, module in self.modules.items():  # Stop the threads
-                if module.prio == self.prio:
-                    module.runner.stop()
+            for name, process in self.processes.items():  # Stop the threads
+                if process.prio == self.prio:
+                    process.runner.stop()
         self.state = "Shutdown"
 
-    def dump_modules(self):
+    def dump_processes(self):
         template = "{0}\t{1}\t{2}\t{3}"
         print(template.format("Task", "State", "Queue", "Conf"))
-        for name, module in list(self.modules.items()):
+        for name, process in list(self.processes.items()):
             print(
-                template.format(name, module.runner.state, module.runner.queue.qsize(), module.conf)
+                template.format(name, process.runner.state, process.runner.queue.qsize(), process.conf)
             )
 
     def get_actor(self, actor):
-        return self.modules[actor].proxy
+        return self.processes[actor].proxy
 
-    def get_modules(self):
-        return self.modules.values()
+    def get_processes(self):
+        return self.processes.values()
 
-    def get_module(self, name):
-        if name in self.modules:
-            return self.modules[name]
-        self.logger.debug("get_module(%s): No such module")
+    def get_process(self, name):
+        if name in self.processes:
+            return self.processes[name]
+        self.logger.debug("get_process(%s): No such process")
         return None
