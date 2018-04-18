@@ -186,9 +186,8 @@ def actors():
 
 @app.route('/show_actor/<name>', methods=['GET'])
 def show_actor(name):
-    print('actor %s' % name)
     manager = app.config['PYWORKS']
-    module = manager.pw_process(name)
+    module = manager.get_process(name)
     return render_template('show_actor.html', module=module)
 
 

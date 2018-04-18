@@ -27,28 +27,33 @@ def load_settings():
 
 
 class Registry(object):
-    tasks = {}
+    def __init__(self):
+        self.tasks = {}
 
-    @classmethod
-    def task(cls, name, factory, conf=None, index=None):
-        cls.tasks[name] = Process(name, factory, conf)
+    def task(self, factory, name=None, conf=None, index=None):
+        if not name:
+            name = factory.__name__
+        self.tasks[name] = Process(name, factory, conf)
         if index:
-            cls.tasks[name].index = index
-        return cls.tasks[name]
+            self.tasks[name].index = index
+        return self.tasks[name]
 
-    @classmethod
-    def actor(cls, name, factory):
-        cls.tasks[name] = Process(name, factory)
-        return cls.tasks[name]
+    def actor(self, factory, name=None):
+        if not name:
+            name = factory.__name__
+        self.tasks[name] = Process(name, factory)
+        return self.tasks[name]
 
 
 register = Registry()
+sysreg = Registry()
 
 
-def runserver(logger, debug=False):
+def runserver(logger, debug=False, server=False):
     load_settings()
     m = Manager(logger=logger, debug=debug)
     m.load_subsys()
+    m.load_processes(sysreg.tasks)
     m.load_processes(register.tasks)
     m.init_processes()
     m.conf_processes()
@@ -83,11 +88,7 @@ def runserver(logger, debug=False):
 
     m.close_processes()
     m.shutdown()
-
-    # wait for all to close
-    for name, process in m.processes.items():
-        if not process.daemon:
-            process.runner.join()
+    m.join_processes()
 
 
 class Process(object):
@@ -361,32 +362,36 @@ class Runner(Thread):
         self.manager, self.process, self.name, self.actor = manager, process, process.name, process.actor
         self.queue = Queue()
         self.state = "Init"
-
+        self.last_timeout = 0
+        
     def stop(self):
         self.state = "Stopping"
 
     def run(self):
+        self.last_timeout = int(time.time())
         while self.state != "Stopping":
             try:
                 self.state = "Ready"
                 actor = self.actor
                 timeout = None
+                block = True
                 if isinstance(actor, Task):
                     actor = self.actor._pw_state
-                    timeout = actor._pw_timeout
-                m = self.queue.get(timeout=timeout)
+                    nexttime = int(self.last_timeout) + actor._pw_timeout
+                    timeout = int(nexttime - time.time())
+                    if timeout <= 0:
+                        block = False
+                        timeout = 0
+                        actor.log('%s: block=%s, pw_timeout=%d, timeout=%d, nexttime=%d, last_timeout=%d, time=%d' % (self.name, block, actor._pw_timeout, timeout, nexttime, self.last_timeout, time.time()))
+                m = self.queue.get(block=block, timeout=timeout)
                 if not hasattr(actor, m.name):
                     if isinstance(actor, Task):
                         actor.pw_invoke(m.name)
                     else:
-                        self.manager.logger.warning(
-                            "%s does not have %s" % (self.actor._pw_state, m.name)
-                        )
+                        self.manager.logger.warning("%s does not have %s" % (actor.pw_state(), m.name))
                     continue
-
                 func = getattr(actor, m.name)
                 self.state = "Working"
-                # print 'from %s, doing: %s' % (m.actor, func)
                 try:
                     m.future.set_value(func(*m.args, **m.kwds))
                 except:
@@ -400,6 +405,8 @@ class Runner(Thread):
                     )
                     actor.pw_exception(m.name)
             except Empty:
+                self.actor.log('Timeout waiting for message...')
+                self.last_timeout = int(time.time())
                 if self.state == "Ready" and isinstance(actor, Task):
                     try:
                         actor.pw_timeout()
@@ -411,6 +418,98 @@ class Runner(Thread):
                         )
                         actor.pw_exception(m.name)
         self.state = "Stopped"
+
+
+class ActorRunner(Thread):
+    def __init__(self, manager, process):
+        Thread.__init__(self, name=process.name)
+        self.manager, self.process, self.name, self.actor = manager, process, process.name, process.actor
+        self.queue = Queue()
+        self.state = "Init"
+        
+    def stop(self):
+        self.state = "Stopping"
+
+    def init(self):
+        pass
+    
+    def get_actor(self):
+        return self.actor
+    
+    def get_timeout(self):
+        return None
+    
+    def do_timeout(self):
+        pass
+    
+    def handle_exception(self, method):
+        self.manager.logger.debug("%s: funccall {} failed: {} ({})".format(
+            self.get_actor(), method.name, sys.exc_info()[1], traceback.format_exc()))
+        
+    def verify_method(self, method):
+        if not hasattr(self.get_actor(), method.name):
+            self.manager.logger.debug("%s: %s does not have %s" % (
+                self.get_actor(), self.get_actor().pw_state(), m.name))
+            return False
+        return True
+    
+    def run(self):
+        self.last_timeout = int(time.time())
+        while self.state != "Stopping":
+            try:
+                self.state = "Ready"
+                actor = self.get_actor()
+                timeout = self.get_timeout()
+                m = self.queue.get(timeout=timeout)
+                if not self.verify_method(m):
+                    continue
+                func = getattr(actor, m.name)
+                self.state = "Working"
+                try:
+                    m.future.set_value(func(*m.args, **m.kwds))
+                except:
+                    self.handle_exception(m)
+            except Empty:
+                self.do_timeout()
+        self.state = "Stopped"
+
+
+class TaskRunner(ActorRunner):
+    def init(self):
+        self.last_timeout = int(time.time())
+        
+    def do_timeout(self):
+        lastlast = self.last_timeout
+        self.last_timeout = int(time.time())
+        if self.state == "Ready":
+            try:
+                self.get_actor().pw_timeout()
+            except:
+                self.manager.logger.debug("%s: timeout failed: %s (%s)" % (
+                    self.get_actor(), sys.exc_info()[1], traceback.format_exc()))
+                self.get_actor().pw_exception("timeout")
+
+    def get_timeout(self):
+        nexttime = int(self.last_timeout) + self.get_actor()._pw_timeout
+        timeout = int(nexttime - time.time()) + 1
+        # self.get_actor().log('{}: pw_timeout={}, timeout={}, last_timeout={}, time={}'.format(self.name, self.get_actor()._pw_timeout, timeout, self.last_timeout, time.time()))
+        if timeout <= 0:
+            self.do_timeout()
+            return self.get_actor()._pw_timeout
+        return timeout
+
+    def verify_method(self, method):
+        if not hasattr(self.get_actor(), method.name):
+            try:
+                self.get_actor().pw_invoke(m.name)
+            except:
+                self.handle_exception(method)
+            return False
+        return True
+    
+    def handle_exception(self, method):
+        self.manager.logger.debug('%s: Exception: {} {}'.format(self.get_actor(), method.name, sys.exc_info()[1]))
+        self.get_actor().pw_exception(method.name)
 
 
 class ManagerManager(object):
@@ -491,7 +590,10 @@ class Manager(object):
             process.actor = process.factory(process)
             process.is_task = isinstance(process.actor, Task)
             process.actor._pw_dispatch = Dispatcher(process.actor)
-            process.runner = Runner(self, process)
+            if process.is_task:
+                process.runner = TaskRunner(self, process)
+            else:
+                process.runner = ActorRunner(self, process)
             process.runner.daemon = daemon
             process.proxy = Proxy(process.runner, process.name)
             process.prio = self.prio
@@ -502,12 +604,13 @@ class Manager(object):
             index += 1
             Manager.pid += 1
         # Every time load_processes is called it is Task's with lower prio
-        self.prio += 1
         self.state = "Loaded prio: %d" % self.prio
+        self.prio += 1
 
     def init_processes(self):
         self.state = "Initializing"
         for name, process in self.processes.items():
+            process.runner.init()
             if process.is_task:
                 process.actor.pw_initialized()
         self.log(self, "All actors initialized")
@@ -518,17 +621,18 @@ class Manager(object):
         prio = 0
         while prio < self.prio:
             for name, process in self.processes.items():
-                if process.prio == prio and process.conf:
-                    if os.access(process.conf, os.R_OK):
-                        f = open(process.conf)
-                        code = compile(f.read(), process.conf, 'exec')
-                        exec(code, {'actor': process.actor})
-                    else:
-                        self.logger.warning(
-                            'conf_processes(): %s could not be read' % process.conf
-                        )
-                if process.is_task:
-                    process.actor._pw_state.pw_configured()
+                if process.prio == prio:
+                    if process.conf:
+                        if os.access(process.conf, os.R_OK):
+                            f = open(process.conf)
+                            code = compile(f.read(), process.conf, 'exec')
+                            exec(code, {'actor': process.actor})
+                        else:
+                            self.logger.warning(
+                                'conf_processes(): %s could not be read' % process.conf
+                            )
+                    if process.is_task:
+                        process.actor._pw_state.pw_configured()
             prio += 1
         self.state = "Configured"
         self.logger.debug("Configured")
@@ -560,6 +664,13 @@ class Manager(object):
             if stopped:
                 time.sleep(1)  # A little time to settle down
         self.state = "Closed"
+
+    def join_processes(self):
+        self.state = "Joining"
+        for name, process in self.processes.items():
+            if not process.daemon:
+                process.runner.join()
+        self.logger.debug("Exited")
 
     def shutdown(self):
         self.state = "Shutting"

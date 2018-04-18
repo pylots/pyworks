@@ -1,6 +1,7 @@
 *.pyc
 db/
 log/*
+*~
 *.class
 __pycache__
 venv/

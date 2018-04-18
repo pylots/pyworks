@@ -7,7 +7,7 @@ class WorkerTask(Task):
     def pw_initialized(self):
         self.ntimeout = 0
         self.future = None
-        self.math = self.actor('math')
+        self.math = self.actor('MathActor')
         self.result = None
 
     def hello(self, n, msg):
@@ -33,7 +33,8 @@ class WorkerTask(Task):
 
         if self.ntimeout % 4 == 0:
             self.log("Starting math job")
-            self.result = self.math.factorial(200000)
+            self.result = self.math.factorial(20)
+            # self.result = self.math.factorial(200000)
 
         if self.ntimeout == 5:
             self.log('setting value for long_work()....')

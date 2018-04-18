@@ -45,6 +45,7 @@ class Future(object):
         self.queue.put(value)
 
     def get_value(self, timeout=Ellipsis):
+        # print("Future.get_value: timeout=%s, has_value=%s, value=%s, qa=%d" % (timeout, self.has_value, self.value, self.queue.qsize()))
         if self.has_value:
             return self.value
 

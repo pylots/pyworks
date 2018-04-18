@@ -15,6 +15,7 @@ class ClientTask(Task):
         self.ntimeout = 0
         self.answers = []
         self.worker = self.actor("worker")
+        self.count = 0
 
     def pw_configured(self):
         self.observe("worker")
@@ -23,9 +24,7 @@ class ClientTask(Task):
         self.ntimeout += 1
         if self.ntimeout % 10 == 0:
             self.log("timeout: %d" % self.ntimeout)
-        if self.ntimeout == 2 or self.ntimeout == 4:
-            return
-
+        if self.ntimeout % 2 == 0:
             start = time()
             n = self.count * self.ntimeout
             for i in range(n):
@@ -36,7 +35,7 @@ class ClientTask(Task):
             t = time() - start
             self.log("%.0f msg/sec" % (float(n) / t))
 
-        if self.ntimeout == 3:
+        if self.ntimeout % 5 == 0:
             self.log("Doing longwork")
             future = Future()
             self.worker.start_long_work(future)
@@ -47,11 +46,9 @@ class ClientTask(Task):
                 try:
                     self.log("Yes: long answer 2 = %d" % future.get_value(10))
                 except FutureShock:
-                    self.log("Wait: got 3 = %d" % future.get_value())
+                    self.log("Nope no answer....")
 
-        if self.ntimeout == 5:
-            return
-
+        if self.ntimeout % 7 == 0:
             sum = 0
             for r in self.answers:
                 sum = sum + r

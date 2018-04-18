@@ -12,7 +12,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='pyworks',
-    version='0.8.0',  # Required
+    version='0.9.0',  # Required
     description='An Task framework',
     long_description=long_description,
     url='https://github.com/pylots/pyworks',

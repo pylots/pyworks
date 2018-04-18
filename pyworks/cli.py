@@ -17,6 +17,7 @@ parser.add_argument(
 )
 parser.add_argument('--run', '-r', action="store_true", help="run pyworks")
 parser.add_argument('--debug', '-d', action="store_true", help="debug mode")
+parser.add_argument('--server', '-s', action="store_true", help="server mode")
 
 project_template = Template(
     """#!/usr/bin/env python
@@ -129,7 +130,7 @@ def commandline():
         create_project(ns.project)
     elif ns.subsys:
         create_subsys(ns.subsys)
-    elif ns.run:
+    elif ns.run or ns.serve:
         from pyworks.util import settings
 
         logger = logging.getLogger('pyworks')
@@ -142,4 +143,4 @@ def commandline():
             datefmt='%y%m%d %H%M%S',
             level=level,
         )
-        runserver(logger, ns.debug)
+        runserver(logger, ns.debug, server=ns.server)
