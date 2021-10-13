@@ -130,7 +130,7 @@ def commandline():
         create_project(ns.project)
     elif ns.subsys:
         create_subsys(ns.subsys)
-    elif ns.run or ns.serve:
+    elif ns.run or ns.server:
         from pyworks.util import settings
 
         logger = logging.getLogger('pyworks')
