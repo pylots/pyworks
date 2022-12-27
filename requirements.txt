@@ -1,4 +1,4 @@
-setuptools==39.0.1
+setuptools==65.5.1
 wheel==0.30.0
 jinja2
 flask
