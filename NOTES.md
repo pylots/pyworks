@@ -1,6 +1,6 @@
+For `SQueue` impl
+```
 >>> a = A()
->>>
->>>
 >>> id(a)
 4339315776
 >>> import ctypes
@@ -10,3 +10,4 @@ True
 >>> b is a
 True
 >>>
+```
