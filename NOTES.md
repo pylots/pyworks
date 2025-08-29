@@ -1,4 +1,4 @@
-For `SQueue` impl
+For `SQueue` impl, makes it possible to "send" and object reference on a socket between two threads in same interpreter
 ```
 >>> a = A()
 >>> id(a)
